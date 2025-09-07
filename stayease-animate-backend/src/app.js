@@ -33,7 +33,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean); // Remove any undefined values
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
@@ -46,12 +46,14 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
 
-// Respond to preflight requests for all routes
-app.options('*', cors());
+app.use(cors(corsOptions));
+
+// Respond to preflight requests for all routes with same options
+app.options('*', cors(corsOptions));
 
 // Body parsing middleware (allow larger payloads for base64 images)
 app.use(express.json({ limit: '50mb' }));

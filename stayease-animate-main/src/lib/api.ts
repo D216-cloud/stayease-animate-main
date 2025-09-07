@@ -153,6 +153,7 @@ export const PropertiesAPI = {
 export interface Booking {
   _id: string;
   property: Property | string;
+  customer?: { first_name: string; last_name: string; email: string } | string;
   checkIn: string;
   checkOut: string;
   guests: number;
@@ -175,6 +176,41 @@ export const BookingsAPI = {
   },
   async listMine(): Promise<ApiResponse<Booking[]>> {
     const res = await fetch(`${API_BASE}/bookings/mine`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
+  async listOwnerMine(): Promise<ApiResponse<Booking[]>> {
+    const res = await fetch(`${API_BASE}/bookings/owner/mine`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
+  async updateStatus(id: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed'): Promise<ApiResponse<Booking>> {
+    const res = await fetch(`${API_BASE}/bookings/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ status }),
+    });
+    return res.json();
+  },
+  async cancelMine(id: string): Promise<ApiResponse<Booking>> {
+    const res = await fetch(`${API_BASE}/bookings/${id}/cancel`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
+  async addReview(id: string, payload: { rating: number; review?: string }): Promise<ApiResponse<Booking>> {
+    const res = await fetch(`${API_BASE}/bookings/${id}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  },
+  async ownerRatingsSummary(): Promise<ApiResponse<{ averageRating: number; totalReviews: number }>> {
+    const res = await fetch(`${API_BASE}/bookings/owner/ratings`, {
       headers: { ...getAuthHeaders() },
     });
     return res.json();

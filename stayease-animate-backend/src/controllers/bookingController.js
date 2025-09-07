@@ -35,7 +35,7 @@ const createBooking = async (req, res) => {
     pricePerNight,
     taxesAndFees,
     totalAmount,
-    status: 'confirmed',
+    status: 'pending',
   });
 
   return res.status(201).json({ success: true, data: booking });
@@ -50,4 +50,96 @@ const listMyBookings = async (req, res) => {
   return res.json({ success: true, data: bookings });
 };
 
-module.exports = { createBooking, listMyBookings };
+// GET /api/bookings/owner/mine
+// List bookings for properties owned by the authenticated hotel owner
+const listOwnerBookings = async (req, res) => {
+  const ownerId = req.user.userId;
+  // Find property IDs owned by this user
+  const props = await Property.find({ owner: ownerId }, { _id: 1 });
+  const propIds = props.map(p => p._id);
+  const bookings = await Booking.find({ property: { $in: propIds } })
+    .sort({ createdAt: -1 })
+    .populate('property', 'name defaultRoom.name')
+    .populate('customer', 'first_name last_name email');
+  return res.json({ success: true, data: bookings });
+};
+
+// PATCH /api/bookings/:id/status
+// Update booking status (owner can confirm or cancel) if they own the property
+const updateBookingStatus = async (req, res) => {
+  const ownerId = req.user.userId;
+  const { id } = req.params;
+  const { status } = req.body;
+  if (!['confirmed', 'cancelled', 'completed', 'pending'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Invalid status' });
+  }
+  const booking = await Booking.findById(id).populate('property', 'owner');
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+  if (!booking.property || String(booking.property.owner) !== String(ownerId)) {
+    return res.status(403).json({ success: false, message: 'Not authorized to modify this booking' });
+  }
+  booking.status = status;
+  await booking.save();
+  return res.json({ success: true, data: booking });
+};
+
+// PATCH /api/bookings/:id/cancel
+// Customer cancels their own booking
+const cancelMyBooking = async (req, res) => {
+  const customerId = req.user.userId;
+  const { id } = req.params;
+
+  const booking = await Booking.findById(id);
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+  if (String(booking.customer) !== String(customerId)) {
+    return res.status(403).json({ success: false, message: 'Not authorized to cancel this booking' });
+  }
+  if (booking.status === 'cancelled' || booking.status === 'completed') {
+    return res.status(400).json({ success: false, message: `Cannot cancel a ${booking.status} booking` });
+  }
+  booking.status = 'cancelled';
+  await booking.save();
+  return res.json({ success: true, data: booking });
+};
+
+// POST /api/bookings/:id/review
+// Customer leaves a rating and review for their booking
+const addReview = async (req, res) => {
+  const customerId = req.user.userId;
+  const { id } = req.params;
+  const { rating, review } = req.body;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ success: false, message: 'Rating must be between 1 and 5' });
+  }
+
+  const booking = await Booking.findById(id);
+  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+  if (String(booking.customer) !== String(customerId)) {
+    return res.status(403).json({ success: false, message: 'Not authorized to review this booking' });
+  }
+  if (booking.status === 'cancelled') {
+    return res.status(400).json({ success: false, message: 'Cannot review a cancelled booking' });
+  }
+
+  booking.rating = rating;
+  booking.review = review || '';
+  booking.reviewedAt = new Date();
+  await booking.save();
+  return res.json({ success: true, data: booking });
+};
+
+// GET /api/bookings/owner/ratings
+// Owner ratings summary across their properties
+const ownerRatingsSummary = async (req, res) => {
+  const ownerId = req.user.userId;
+  const props = await Property.find({ owner: ownerId }, { _id: 1 });
+  const propIds = props.map(p => p._id);
+  if (propIds.length === 0) return res.json({ success: true, averageRating: 0, totalReviews: 0 });
+  const bookings = await Booking.find({ property: { $in: propIds }, rating: { $ne: null } }, { rating: 1 });
+  const totalReviews = bookings.length;
+  const averageRating = totalReviews ? (bookings.reduce((sum, b) => sum + (b.rating || 0), 0) / totalReviews) : 0;
+  return res.json({ success: true, averageRating, totalReviews });
+};
+
+ module.exports = { createBooking, listMyBookings, listOwnerBookings, updateBookingStatus, cancelMyBooking, addReview, ownerRatingsSummary };

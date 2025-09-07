@@ -27,74 +27,34 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { BookingsAPI, type Booking, type Property } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const OwnerBookings = () => {
-  const bookings = [
-    {
-      id: "BK001",
-      guest: "John Smith",
-      email: "john@example.com",
-      phone: "+1 234 567 8890",
-      property: "Royal Inn",
-      room: "Deluxe Suite 205",
-      checkIn: "2024-01-15",
-      checkOut: "2024-01-18",
-      guests: 2,
-      nights: 3,
-      amount: 897,
-      status: "confirmed",
-      bookingDate: "2024-01-01",
-      specialRequests: "Late check-in requested"
-    },
-    {
-      id: "BK002",
-      guest: "Sarah Johnson",
-      email: "sarah@example.com",
-      phone: "+1 234 567 8891",
-      property: "Beach Resort",
-      room: "Ocean View Villa 12",
-      checkIn: "2024-01-20",
-      checkOut: "2024-01-25",
-      guests: 4,
-      nights: 5,
-      amount: 2495,
-      status: "pending",
-      bookingDate: "2024-01-10",
-      specialRequests: "Anniversary celebration"
-    },
-    {
-      id: "BK003",
-      guest: "Mike Chen",
-      email: "mike@example.com",
-      phone: "+1 234 567 8892",
-      property: "Royal Inn",
-      room: "Standard Room 101",
-      checkIn: "2024-01-12",
-      checkOut: "2024-01-14",
-      guests: 1,
-      nights: 2,
-      amount: 318,
-      status: "completed",
-      bookingDate: "2024-01-05",
-      specialRequests: "None"
-    },
-    {
-      id: "BK004",
-      guest: "Emma Wilson",
-      email: "emma@example.com",
-      phone: "+1 234 567 8893",
-      property: "Mountain Lodge",
-      room: "Cabin 8",
-      checkIn: "2024-01-25",
-      checkOut: "2024-01-28",
-      guests: 3,
-      nights: 3,
-      amount: 675,
-      status: "cancelled",
-      bookingDate: "2024-01-08",
-      specialRequests: "Pet-friendly room"
-    }
-  ];
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [apiBookings, setApiBookings] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await BookingsAPI.listOwnerMine();
+        if (!res.success) throw new Error(res.message || 'Failed to load bookings');
+        if (mounted) setApiBookings(res.data || []);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Failed to load bookings';
+        if (mounted) setError(msg);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,9 +86,59 @@ const OwnerBookings = () => {
     }
   };
 
+  type OwnerUIBooking = {
+    id: string;
+    guest: string;
+    email?: string;
+    property: string;
+    room?: string;
+    checkIn: string;
+    checkOut: string;
+    guests: number;
+    nights: number;
+    amount: number;
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  };
+
+  const mapToUi = useCallback((b: Booking): OwnerUIBooking | null => {
+    if (!b.property || typeof b.property === 'string') return null;
+    const prop = b.property as Property;
+    const guestName = (typeof b.customer !== 'string' && b.customer)
+      ? `${b.customer.first_name} ${b.customer.last_name}`
+      : 'Guest';
+    return {
+      id: b._id,
+      guest: guestName,
+      email: typeof b.customer !== 'string' && b.customer ? b.customer.email : undefined,
+      property: prop.name,
+      room: prop.defaultRoom?.name,
+      checkIn: b.checkIn,
+      checkOut: b.checkOut,
+      guests: b.guests,
+      nights: b.nights,
+      amount: b.totalAmount,
+      status: b.status,
+    };
+  }, []);
+
+  const bookings: OwnerUIBooking[] = useMemo(() => apiBookings.map(mapToUi).filter(Boolean) as OwnerUIBooking[], [apiBookings, mapToUi]);
+
   const upcomingBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending');
   const activeBookings = bookings.filter(b => b.status === 'confirmed');
   const allBookings = bookings;
+
+  const handleUpdateStatus = async (id: string, status: OwnerUIBooking['status']) => {
+    try {
+      const res = await BookingsAPI.updateStatus(id, status);
+      if (!res.success) throw new Error(res.message || 'Update failed');
+      const list = await BookingsAPI.listOwnerMine();
+      if (list.success) setApiBookings(list.data || []);
+      toast({ title: 'Booking updated', description: `Status changed to ${status}` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Update failed';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    }
+  };
 
   return (
     <DashboardLayout userRole="hotel-owner">
@@ -214,7 +224,7 @@ const OwnerBookings = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-slate-900">{bookings.filter(b => b.status === 'pending').length}</p>
+                  <p className="text-3xl font-bold text-slate-900">{upcomingBookings.filter(b => b.status === 'pending').length}</p>
                   <p className="text-sm text-slate-600">Pending</p>
                 </div>
               </div>
@@ -234,7 +244,7 @@ const OwnerBookings = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-slate-900">${bookings.reduce((sum, b) => sum + b.amount, 0).toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-slate-900">${allBookings.reduce((sum, b) => sum + b.amount, 0).toLocaleString()}</p>
                   <p className="text-sm text-slate-600">Total Revenue</p>
                 </div>
               </div>
@@ -295,7 +305,7 @@ const OwnerBookings = () => {
               Active ({activeBookings.length})
             </TabsTrigger>
             <TabsTrigger value="completed" className="text-slate-700 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white">
-              Completed ({bookings.filter(b => b.status === 'completed').length})
+              Completed ({allBookings.filter(b => b.status === 'completed').length})
             </TabsTrigger>
           </TabsList>
           
@@ -316,7 +326,16 @@ const OwnerBookings = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bookings.map((booking) => (
+                    {loading && (
+                      <TableRow><TableCell colSpan={7} className="text-center text-slate-500">Loading…</TableCell></TableRow>
+                    )}
+                    {error && !loading && (
+                      <TableRow><TableCell colSpan={7} className="text-center text-red-600">{error}</TableCell></TableRow>
+                    )}
+                    {!loading && !error && allBookings.length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center text-slate-500">No bookings yet.</TableCell></TableRow>
+                    )}
+                    {allBookings.map((booking) => (
                       <TableRow key={booking.id} className="border-slate-100 hover:bg-slate-50 transition-colors">
                         <TableCell>
                           <div className="flex items-center space-x-3">
@@ -327,7 +346,7 @@ const OwnerBookings = () => {
                             </Avatar>
                             <div>
                               <p className="font-medium text-slate-900">{booking.guest}</p>
-                              <p className="text-sm text-slate-500">{booking.id}</p>
+                              <p className="text-sm text-slate-500">{booking.email || ''}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -370,12 +389,12 @@ const OwnerBookings = () => {
                               <Mail className="w-4 h-4 mr-1" />
                               Email
                             </Button>
-                            {booking.status === 'pending' && (
+              {booking.status === 'pending' && (
                               <>
-                                <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0">
+                <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0" onClick={() => handleUpdateStatus(booking.id, 'confirmed')}>
                                   Confirm
                                 </Button>
-                                <Button size="sm" variant="destructive" className="border-red-200 hover:bg-red-50 text-red-700">
+                <Button size="sm" variant="destructive" className="border-red-200 hover:bg-red-50 text-red-700" onClick={() => handleUpdateStatus(booking.id, 'cancelled')}>
                                   Decline
                                 </Button>
                               </>
@@ -439,7 +458,6 @@ const OwnerBookings = () => {
                         <div>
                           <h3 className="text-lg font-semibold text-slate-900">{booking.guest}</h3>
                           <p className="text-sm text-slate-500">{booking.email}</p>
-                          <p className="text-sm text-slate-500">{booking.phone}</p>
                         </div>
                         <Badge className={`${getStatusColor(booking.status)} border-0`}>
                           {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
@@ -504,12 +522,7 @@ const OwnerBookings = () => {
                     </div>
                   </div>
                   
-                  {booking.specialRequests !== "None" && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <p className="text-sm text-slate-500">Special Requests:</p>
-                      <p className="text-sm text-slate-900">{booking.specialRequests}</p>
-                    </div>
-                  )}
+                  
                 </Card>
               ))}
             </div>
