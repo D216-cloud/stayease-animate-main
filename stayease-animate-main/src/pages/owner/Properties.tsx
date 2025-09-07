@@ -34,64 +34,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import hotelImage from "@/assets/hotel-construction.jpg";
+import { PropertiesAPI, type Property } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Properties = () => {
   const navigate = useNavigate();
-  const properties = [
-    {
-      id: 1,
-      name: "Royal Inn",
-      location: "Paris, France",
-      type: "Hotel",
-      rooms: 150,
-      status: "Active",
-      occupancy: 85,
-      rating: 4.8,
-      revenue: "$15,200",
-      bookings: 45,
-      image: hotelImage
-    },
-    {
-      id: 2,
-      name: "Beach Resort",
-      location: "Maldives",
-      type: "Resort",
-      rooms: 80,
-      status: "Pending",
-      occupancy: 72,
-      rating: 4.9,
-      revenue: "$12,800",
-      bookings: 32,
-      image: hotelImage
-    },
-    {
-      id: 3,
-      name: "Mountain Lodge",
-      location: "Swiss Alps",
-      type: "Lodge",
-      rooms: 45,
-      status: "Active",
-      occupancy: 68,
-      rating: 4.7,
-      revenue: "$8,400",
-      bookings: 28,
-      image: hotelImage
-    },
-    {
-      id: 4,
-      name: "City Business Hotel",
-      location: "Tokyo, Japan",
-      type: "Business Hotel",
-      rooms: 200,
-      status: "Maintenance",
-      occupancy: 0,
-      rating: 4.6,
-      revenue: "$0",
-      bookings: 0,
-      image: hotelImage
+  const { toast } = useToast();
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await PropertiesAPI.listMine();
+        if (!cancelled) {
+          if (res.success && res.data) setProperties(res.data);
+          else toast({ title: 'Failed to load properties', description: res.message, variant: 'destructive' });
+        }
+      } catch (e) {
+        if (!cancelled) toast({ title: 'Network error', description: 'Could not fetch properties', variant: 'destructive' });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [toast]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this property?')) return;
+    const res = await PropertiesAPI.remove(id);
+    if (res.success) {
+      setProperties(prev => prev.filter(p => p._id !== id));
+      toast({ title: 'Property deleted' });
+    } else {
+      toast({ title: 'Delete failed', description: res.message, variant: 'destructive' });
     }
-  ];
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -175,7 +156,7 @@ const Properties = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-slate-900">{properties.filter(p => p.status === 'Active').length}</p>
+                  <p className="text-3xl font-bold text-slate-900">{properties.filter(p => p.isActive).length}</p>
                   <p className="text-sm text-slate-600">Active</p>
                 </div>
               </div>
@@ -195,7 +176,7 @@ const Properties = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-slate-900">{properties.reduce((sum, p) => sum + p.rooms, 0)}</p>
+                  <p className="text-3xl font-bold text-slate-900">{properties.reduce((sum, p) => sum + (p.rooms || 0), 0)}</p>
                   <p className="text-sm text-slate-600">Total Rooms</p>
                 </div>
               </div>
@@ -264,18 +245,26 @@ const Properties = () => {
 
         {/* Properties Grid View */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {properties.map((property) => (
-            <Card key={property.id} className="bg-white/95 backdrop-blur-md border-0 shadow-xl overflow-hidden hover:scale-105 hover:shadow-2xl transition-all duration-300 group">
+          {loading ? (
+            <p className="text-slate-600">Loading...</p>
+          ) : properties.length === 0 ? (
+            <p className="text-slate-600">No properties yet. Click "Add New Property" to create one.</p>
+          ) : properties.map((property) => (
+            <Card key={property._id} className="bg-white/95 backdrop-blur-md border-0 shadow-xl overflow-hidden hover:scale-105 hover:shadow-2xl transition-all duration-300 group">
               <div className="relative">
                 <div className="h-48 overflow-hidden">
-                  <img 
-                    src={property.image} 
-                    alt={property.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
+                  {property.images?.[0]?.url ? (
+                    <img 
+                      src={property.images[0].url}
+                      alt={property.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-500">No Image</div>
+                  )}
                 </div>
-                <Badge className={`absolute top-2 right-2 ${getStatusColor(property.status)} border-0`}>
-                  {property.status}
+                <Badge className={`absolute top-2 right-2 ${getStatusColor(property.isActive ? 'Active' : 'Inactive')} border-0`}>
+                  {property.isActive ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
               
@@ -285,7 +274,7 @@ const Properties = () => {
                     <h3 className="font-semibold text-slate-900 group-hover:text-purple-600 transition-colors">{property.name}</h3>
                     <div className="flex items-center space-x-1 text-slate-600 text-sm">
                       <MapPin className="w-3 h-3" />
-                      <span>{property.location}</span>
+                      <span>{property.city}, {property.country}</span>
                     </div>
                   </div>
                   <DropdownMenu>
@@ -295,15 +284,15 @@ const Properties = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-white border-slate-200">
-                      <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer">
+                      <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer" onClick={() => navigate(`/dashboard/hotel-owner/properties/${property._id}`)}>
                         <Eye className="w-4 h-4 mr-2" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer">
+                      <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer" onClick={() => navigate(`/dashboard/hotel-owner/properties/${property._id}/edit`)}>
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Property
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600 hover:bg-red-50 cursor-pointer">
+                      <DropdownMenuItem className="text-red-600 hover:bg-red-50 cursor-pointer" onClick={() => handleDelete(property._id)}>
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete
                       </DropdownMenuItem>
@@ -320,27 +309,27 @@ const Properties = () => {
                     <p className="text-sm text-slate-600">Rating</p>
                     <div className="flex items-center space-x-1">
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      <span className="font-medium text-slate-900">{property.rating}</span>
+                      <span className="font-medium text-slate-900">--</span>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600">Occupancy</p>
-                    <p className="font-medium text-slate-900">{property.occupancy}%</p>
+                    <p className="font-medium text-slate-900">--</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600">Revenue</p>
-                    <p className="font-medium text-slate-900">{property.revenue}</p>
+                    <p className="font-medium text-slate-900">--</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <span className="text-sm text-slate-500">{property.bookings} bookings</span>
+                  <span className="text-sm text-slate-500">-- bookings</span>
                   <div className="space-x-2">
                     <Button size="sm" variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50">Manage</Button>
                     <Button 
                       size="sm" 
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0"
-                      onClick={() => navigate(`/dashboard/hotel-owner/properties/${property.id}/rooms`)}
+                      onClick={() => navigate(`/dashboard/hotel-owner/properties/${property._id}/rooms`)}
                     >
                       View
                     </Button>
@@ -373,25 +362,29 @@ const Properties = () => {
               </TableHeader>
               <TableBody>
                 {properties.map((property) => (
-                  <TableRow key={property.id} className="border-slate-100 hover:bg-slate-50 transition-colors">
+                  <TableRow key={property._id} className="border-slate-100 hover:bg-slate-50 transition-colors">
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-lg overflow-hidden ring-2 ring-slate-100">
-                          <img 
-                            src={property.image} 
-                            alt={property.name}
-                            className="w-full h-full object-cover"
-                          />
+                          {property.images?.[0]?.url ? (
+                            <img 
+                              src={property.images[0].url}
+                              alt={property.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-slate-100" />
+                          )}
                         </div>
                         <span className="font-medium text-slate-900">{property.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-700">{property.location}</TableCell>
-                    <TableCell className="text-slate-700">{property.type}</TableCell>
+                    <TableCell className="text-slate-700">{property.city}, {property.country}</TableCell>
+                    <TableCell className="text-slate-700 capitalize">{property.type}</TableCell>
                     <TableCell className="text-slate-700">{property.rooms}</TableCell>
                     <TableCell>
-                      <Badge className={`${getStatusColor(property.status)} border-0`}>
-                        {property.status}
+                      <Badge className={`${getStatusColor(property.isActive ? 'Active' : 'Inactive')} border-0`}>
+                        {property.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -399,19 +392,19 @@ const Properties = () => {
                         <div className="w-16 bg-slate-200 rounded-full h-2">
                           <div 
                             className="bg-gradient-to-r from-purple-600 to-pink-600 h-2 rounded-full transition-all duration-500" 
-                            style={{ width: `${property.occupancy}%` }}
+                            style={{ width: `0%` }}
                           ></div>
                         </div>
-                        <span className="text-sm text-slate-600">{property.occupancy}%</span>
+                        <span className="text-sm text-slate-600">--%</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
                         <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <span className="text-slate-700">{property.rating}</span>
+                        <span className="text-slate-700">--</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium text-slate-900">{property.revenue}</TableCell>
+                    <TableCell className="font-medium text-slate-900">--</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -420,15 +413,15 @@ const Properties = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-white border-slate-200">
-                          <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer">
+                          <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer" onClick={() => navigate(`/dashboard/hotel-owner/properties/${property._id}`)}>
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer">
+                          <DropdownMenuItem className="text-slate-700 hover:bg-slate-100 cursor-pointer" onClick={() => navigate(`/dashboard/hotel-owner/properties/${property._id}/edit`)}>
                             <Edit className="w-4 h-4 mr-2" />
                             Edit Property
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600 hover:bg-red-50 cursor-pointer">
+                          <DropdownMenuItem className="text-red-600 hover:bg-red-50 cursor-pointer" onClick={() => handleDelete(property._id)}>
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
@@ -445,31 +438,35 @@ const Properties = () => {
         {/* Mobile condensed list */}
         <div className="md:hidden space-y-4">
           {properties.map(property => (
-            <Card key={property.id} className="bg-white/95 backdrop-blur-md border-0 shadow-lg overflow-hidden">
+            <Card key={property._id} className="bg-white/95 backdrop-blur-md border-0 shadow-lg overflow-hidden">
               <div className="flex items-start gap-4 p-4">
                 <div className="w-24 h-20 rounded-md overflow-hidden flex-shrink-0">
-                  <img src={property.image} alt={property.name} className="w-full h-full object-cover" />
+                  {property.images?.[0]?.url ? (
+                    <img src={property.images[0].url} alt={property.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-100" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-semibold text-slate-900">{property.name}</h4>
-                      <div className="text-xs text-slate-600 flex items-center gap-1"><MapPin className="w-3 h-3"/>{property.location}</div>
+                      <div className="text-xs text-slate-600 flex items-center gap-1"><MapPin className="w-3 h-3"/>{property.city}, {property.country}</div>
                     </div>
-                    <Badge className={`${getStatusColor(property.status)} border-0`}>{property.status}</Badge>
+                    <Badge className={`${getStatusColor(property.isActive ? 'Active' : 'Inactive')} border-0`}>{property.isActive ? 'Active' : 'Inactive'}</Badge>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-600">
                     <div>Rooms: <span className="font-medium text-slate-900">{property.rooms}</span></div>
-                    <div>Occ: <span className="font-medium text-slate-900">{property.occupancy}%</span></div>
-                    <div>Rating: <span className="font-medium text-slate-900">{property.rating}</span></div>
-                    <div>Revenue: <span className="font-medium text-slate-900">{property.revenue}</span></div>
+                    <div>Occ: <span className="font-medium text-slate-900">--%</span></div>
+                    <div>Rating: <span className="font-medium text-slate-900">--</span></div>
+                    <div>Revenue: <span className="font-medium text-slate-900">--</span></div>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
                     <Button size="sm" variant="outline" className="flex-1">Manage</Button>
                     <Button 
                       size="sm" 
                       className="bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                      onClick={() => navigate(`/dashboard/hotel-owner/properties/${property.id}/rooms`)}
+                      onClick={() => navigate(`/dashboard/hotel-owner/properties/${property._id}/rooms`)}
                     >
                       View
                     </Button>

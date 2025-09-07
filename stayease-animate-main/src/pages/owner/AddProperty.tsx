@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { PropertiesAPI, fileToDataUrl } from "@/lib/api";
 
 const AddProperty = () => {
   const navigate = useNavigate();
@@ -74,15 +75,53 @@ const AddProperty = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Convert images to data URLs
+      const imagesData = await Promise.all(
+        (formData.images || []).slice(0, 10).map(fileToDataUrl)
+      );
+
+      const payload = {
+        name: formData.name,
+        type: formData.type as 'hotel' | 'resort' | 'lodge' | 'apartment' | 'villa',
+        description: formData.description,
+        address: formData.address,
+        city: formData.city,
+        country: formData.country,
+        zipCode: formData.zipCode,
+        phone: formData.phone,
+        email: formData.email,
+        website: formData.website,
+        rooms: Number(formData.rooms),
+        price: Number(formData.price),
+        amenities: formData.amenities,
+        images: imagesData,
+      };
+
+      const res = await PropertiesAPI.create(payload);
+      if (res.success) {
+        toast({
+          title: "Property Added Successfully!",
+          description: "Your property has been listed and is now available for bookings.",
+        });
+        navigate('/dashboard/hotel-owner/properties');
+      } else {
+        toast({
+          title: "Failed to add property",
+          description: res.message || 'Please check your inputs and try again.',
+          variant: 'destructive'
+        });
+      }
+    } catch (err) {
+      console.error(err);
       toast({
-        title: "Property Added Successfully!",
-        description: "Your property has been listed and is now available for bookings.",
+        title: "Network error",
+        description: "Could not add property. Please try again.",
+        variant: 'destructive'
       });
-      navigate('/dashboard/hotel-owner/properties');
+    } finally {
       setIsSubmitting(false);
-    }, 2000);
+    }
   };
 
   return (

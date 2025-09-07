@@ -80,3 +80,89 @@ module.exports = {
   createProperty,
   getMyProperties,
 };
+
+// GET /api/properties/:id
+// Get a single property owned by the authenticated hotel owner
+const getPropertyById = async (req, res) => {
+  const ownerId = req.user.userId;
+  const { id } = req.params;
+
+  const property = await Property.findOne({ _id: id, owner: ownerId });
+  if (!property) {
+    return res.status(404).json({ success: false, message: 'Property not found' });
+  }
+
+  return res.json({ success: true, data: property });
+};
+
+// PUT /api/properties/:id
+// Update a property (hotel owner only)
+const updateProperty = async (req, res) => {
+  const ownerId = req.user.userId;
+  const { id } = req.params;
+
+  const property = await Property.findOne({ _id: id, owner: ownerId });
+  if (!property) {
+    return res.status(404).json({ success: false, message: 'Property not found' });
+  }
+
+  const allowedFields = [
+    'name', 'type', 'description', 'address', 'city', 'country', 'zipCode',
+    'phone', 'email', 'website', 'rooms', 'price', 'amenities', 'isActive'
+  ];
+
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      property[field] = req.body[field];
+    }
+  }
+
+  // Optional: handle new images upload if provided as base64 array
+  if (Array.isArray(req.body.newImages) && req.body.newImages.length) {
+    const uploadedImages = [];
+    for (const img of req.body.newImages.slice(0, 10)) {
+      if (!img) continue;
+      const uploaded = await uploadToCloudinary(img, `properties/${ownerId}`);
+      uploadedImages.push({ url: uploaded.secure_url, public_id: uploaded.public_id });
+    }
+    property.images = [...property.images, ...uploadedImages];
+  }
+
+  // Optional: remove images by public_id
+  if (Array.isArray(req.body.removeImagePublicIds) && req.body.removeImagePublicIds.length) {
+    const toRemove = new Set(req.body.removeImagePublicIds);
+    // Delete from cloudinary (best-effort)
+    for (const publicId of toRemove) {
+      try { await cloudinary.uploader.destroy(publicId); } catch (e) { /* noop */ }
+    }
+    property.images = property.images.filter(img => !toRemove.has(img.public_id));
+  }
+
+  await property.save();
+  return res.json({ success: true, data: property });
+};
+
+// DELETE /api/properties/:id
+// Delete a property (hotel owner only)
+const deleteProperty = async (req, res) => {
+  const ownerId = req.user.userId;
+  const { id } = req.params;
+
+  const property = await Property.findOne({ _id: id, owner: ownerId });
+  if (!property) {
+    return res.status(404).json({ success: false, message: 'Property not found' });
+  }
+
+  // Best-effort delete images from Cloudinary
+  for (const img of property.images || []) {
+    if (!img.public_id) continue;
+    try { await cloudinary.uploader.destroy(img.public_id); } catch (e) { /* noop */ }
+  }
+
+  await Property.deleteOne({ _id: id });
+  return res.json({ success: true, message: 'Property deleted' });
+};
+
+module.exports.getPropertyById = getPropertyById;
+module.exports.updateProperty = updateProperty;
+module.exports.deleteProperty = deleteProperty;
