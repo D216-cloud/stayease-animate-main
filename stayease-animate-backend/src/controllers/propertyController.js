@@ -1,8 +1,15 @@
 const Property = require('../models/Property');
 const cloudinary = require('../config/cloudinary');
+const isCloudinaryConfigured = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
+);
 
 // Helper to upload base64 or temp file path to Cloudinary
 const uploadToCloudinary = async (file, folder = 'properties') => {
+  if (!isCloudinaryConfigured) {
+    // Fallback for development without Cloudinary: store data URL directly
+    return { secure_url: typeof file === 'string' ? file : '', public_id: '' };
+  }
   // file can be base64 string (data URL) or file path
   return cloudinary.uploader.upload(file, {
     folder,
@@ -31,6 +38,8 @@ const createProperty = async (req, res) => {
     amenities = [],
     // images can be array of base64 data URLs
     images = [],
+  // default room information (optional)
+  defaultRoom = undefined,
   } = req.body;
 
   if (!name || !type || !address || !city || !country || !phone || !email || rooms == null || price == null) {
@@ -63,7 +72,8 @@ const createProperty = async (req, res) => {
     rooms,
     price,
     amenities,
-    images: uploadedImages,
+  images: uploadedImages.slice(0, 10),
+  ...(defaultRoom ? { defaultRoom } : {}),
   });
 
   return res.status(201).json({ success: true, data: property });
@@ -108,7 +118,7 @@ const updateProperty = async (req, res) => {
 
   const allowedFields = [
     'name', 'type', 'description', 'address', 'city', 'country', 'zipCode',
-    'phone', 'email', 'website', 'rooms', 'price', 'amenities', 'isActive'
+  'phone', 'email', 'website', 'rooms', 'price', 'amenities', 'isActive', 'defaultRoom'
   ];
 
   for (const field of allowedFields) {
@@ -119,13 +129,15 @@ const updateProperty = async (req, res) => {
 
   // Optional: handle new images upload if provided as base64 array
   if (Array.isArray(req.body.newImages) && req.body.newImages.length) {
+    const remainingSlots = Math.max(0, 10 - (property.images?.length || 0));
+    const toProcess = req.body.newImages.slice(0, remainingSlots);
     const uploadedImages = [];
-    for (const img of req.body.newImages.slice(0, 10)) {
+    for (const img of toProcess) {
       if (!img) continue;
       const uploaded = await uploadToCloudinary(img, `properties/${ownerId}`);
       uploadedImages.push({ url: uploaded.secure_url, public_id: uploaded.public_id });
     }
-    property.images = [...property.images, ...uploadedImages];
+    property.images = [...(property.images || []), ...uploadedImages];
   }
 
   // Optional: remove images by public_id
@@ -136,6 +148,11 @@ const updateProperty = async (req, res) => {
       try { await cloudinary.uploader.destroy(publicId); } catch (e) { /* noop */ }
     }
     property.images = property.images.filter(img => !toRemove.has(img.public_id));
+  }
+
+  // Ensure max 10 images after updates
+  if (Array.isArray(property.images) && property.images.length > 10) {
+    property.images = property.images.slice(0, 10);
   }
 
   await property.save();
@@ -154,9 +171,11 @@ const deleteProperty = async (req, res) => {
   }
 
   // Best-effort delete images from Cloudinary
-  for (const img of property.images || []) {
-    if (!img.public_id) continue;
-    try { await cloudinary.uploader.destroy(img.public_id); } catch (e) { /* noop */ }
+  if (isCloudinaryConfigured) {
+    for (const img of property.images || []) {
+      if (!img.public_id) continue;
+      try { await cloudinary.uploader.destroy(img.public_id); } catch (e) { /* noop */ }
+    }
   }
 
   await Property.deleteOne({ _id: id });

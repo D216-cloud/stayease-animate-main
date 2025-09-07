@@ -40,7 +40,16 @@ const AddProperty = () => {
     rooms: "",
     price: "",
     amenities: [] as string[],
-    images: [] as File[]
+    images: [] as File[],
+    defaultRoom: {
+      name: '',
+      roomType: '',
+      capacity: 1,
+      bedType: '',
+      size: 0,
+      smokingAllowed: false,
+      breakfastIncluded: false,
+    }
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,11 +72,28 @@ const AddProperty = () => {
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  const handleDefaultRoomChange = (field: keyof typeof formData.defaultRoom, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...files]
+      defaultRoom: {
+        ...prev.defaultRoom,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setFormData(prev => {
+      const next = [...prev.images, ...files].slice(0, 10);
+      return { ...prev, images: next };
+    });
+  };
+
+  const removeSelectedImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
     }));
   };
 
@@ -96,6 +122,7 @@ const AddProperty = () => {
         price: Number(formData.price),
         amenities: formData.amenities,
         images: imagesData,
+  defaultRoom: formData.defaultRoom,
       };
 
       const res = await PropertiesAPI.create(payload);
@@ -364,6 +391,53 @@ const AddProperty = () => {
             </div>
           </Card>
 
+          {/* Default Room (Quick Setup) */}
+          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Default Room (Quick Setup)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <Label htmlFor="dr-name" className="text-slate-700 font-medium">Room Name</Label>
+                <Input id="dr-name" value={formData.defaultRoom.name}
+                  onChange={(e) => handleDefaultRoomChange('name', e.target.value)}
+                  placeholder="e.g., Deluxe King" className="bg-white border-slate-200" />
+              </div>
+              <div>
+                <Label htmlFor="dr-type" className="text-slate-700 font-medium">Room Type</Label>
+                <Input id="dr-type" value={formData.defaultRoom.roomType}
+                  onChange={(e) => handleDefaultRoomChange('roomType', e.target.value)}
+                  placeholder="e.g., Deluxe / Suite" className="bg-white border-slate-200" />
+              </div>
+              <div>
+                <Label htmlFor="dr-capacity" className="text-slate-700 font-medium">Capacity</Label>
+                <Input id="dr-capacity" type="number" min={1} value={formData.defaultRoom.capacity}
+                  onChange={(e) => handleDefaultRoomChange('capacity', Number(e.target.value))}
+                  className="bg-white border-slate-200" />
+              </div>
+              <div>
+                <Label htmlFor="dr-bed" className="text-slate-700 font-medium">Bed Type</Label>
+                <Input id="dr-bed" value={formData.defaultRoom.bedType}
+                  onChange={(e) => handleDefaultRoomChange('bedType', e.target.value)}
+                  placeholder="e.g., King / Twin" className="bg-white border-slate-200" />
+              </div>
+              <div>
+                <Label htmlFor="dr-size" className="text-slate-700 font-medium">Room Size (sqm)</Label>
+                <Input id="dr-size" type="number" min={0} value={formData.defaultRoom.size}
+                  onChange={(e) => handleDefaultRoomChange('size', Number(e.target.value))}
+                  className="bg-white border-slate-200" />
+              </div>
+              <div className="flex items-center space-x-2 mt-8">
+                <Checkbox id="dr-smoking" checked={formData.defaultRoom.smokingAllowed}
+                  onCheckedChange={(c) => handleDefaultRoomChange('smokingAllowed', !!c)} />
+                <Label htmlFor="dr-smoking" className="text-slate-700">Smoking Allowed</Label>
+              </div>
+              <div className="flex items-center space-x-2 mt-8">
+                <Checkbox id="dr-breakfast" checked={formData.defaultRoom.breakfastIncluded}
+                  onCheckedChange={(c) => handleDefaultRoomChange('breakfastIncluded', !!c)} />
+                <Label htmlFor="dr-breakfast" className="text-slate-700">Breakfast Included</Label>
+              </div>
+            </div>
+          </Card>
+
           {/* Image Upload */}
           <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl p-6">
             <h2 className="text-xl font-semibold text-slate-900 mb-6 flex items-center">
@@ -393,12 +467,22 @@ const AddProperty = () => {
             {formData.images.length > 0 && (
               <div className="mt-4">
                 <p className="text-slate-700 text-sm mb-2">Selected Images: {formData.images.length}</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {formData.images.map((file, index) => (
-                    <div key={index} className="text-xs text-slate-500 truncate">
-                      {file.name}
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {formData.images.map((file, index) => {
+                    const url = URL.createObjectURL(file);
+                    return (
+                      <div key={index} className="relative group border rounded overflow-hidden">
+                        <img src={url} className="w-full h-24 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeSelectedImage(index)}
+                          className="absolute top-1 right-1 bg-white/80 text-slate-700 text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -121,7 +121,7 @@ const Properties = () => {
           </Button>
         </div>
 
-        {/* Stats Cards */}
+  {/* Stats Cards and Room Card */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="group cursor-pointer bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
             {/* Floating gradient orbs */}
@@ -203,6 +203,46 @@ const Properties = () => {
             </div>
           </Card>
         </div>
+
+        {/* Room Card Summary */}
+        {properties.length > 0 && (
+          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl p-6">
+            <h3 className="text-lg font-semibold mb-4 text-slate-900">Default Room Summary</h3>
+            <div className="grid md:grid-cols-3 gap-4 text-slate-700">
+              {properties.map(p => p.defaultRoom).filter(Boolean).slice(0,1).map((room, idx) => (
+                <div key={idx} className="col-span-3 grid md:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-sm text-slate-500">Name</div>
+                    <div className="font-medium">{room?.name || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-500">Type</div>
+                    <div className="font-medium">{room?.roomType || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-500">Capacity</div>
+                    <div className="font-medium">{room?.capacity ?? '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-500">Bed</div>
+                    <div className="font-medium">{room?.bedType || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-500">Size</div>
+                    <div className="font-medium">{room?.size ? `${room.size} sqm` : '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-500">Extras</div>
+                    <div className="font-medium">{[room?.smokingAllowed ? 'Smoking' : null, room?.breakfastIncluded ? 'Breakfast' : null].filter(Boolean).join(' • ') || '—'}</div>
+                  </div>
+                </div>
+              ))}
+              {properties.every(p => !p.defaultRoom) && (
+                <div className="text-slate-600">No room info yet. Add default room details when creating a property.</div>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Search and Filter */}
         <div className="flex flex-col md:flex-row gap-4">

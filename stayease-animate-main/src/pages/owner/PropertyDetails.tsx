@@ -68,6 +68,18 @@ const PropertyDetails = () => {
                 <div><span className="font-medium">Price:</span> {property.price}</div>
                 <div><span className="font-medium">Amenities:</span> {property.amenities?.join(', ') || '—'}</div>
                 <div><span className="font-medium">Status:</span> {property.isActive ? 'Active' : 'Inactive'}</div>
+                <div className="mt-4">
+                  <div className="font-semibold">Default Room</div>
+                  <div className="text-sm text-slate-700">Name: {property.defaultRoom?.name || '—'}</div>
+                  <div className="text-sm text-slate-700">Type: {property.defaultRoom?.roomType || '—'}</div>
+                  <div className="text-sm text-slate-700">Capacity: {property.defaultRoom?.capacity ?? '—'}</div>
+                  <div className="text-sm text-slate-700">Bed: {property.defaultRoom?.bedType || '—'}</div>
+                  <div className="text-sm text-slate-700">Size: {property.defaultRoom?.size ? `${property.defaultRoom?.size} sqm` : '—'}</div>
+                  <div className="text-sm text-slate-700">Extras: {[
+                    property.defaultRoom?.smokingAllowed ? 'Smoking' : null,
+                    property.defaultRoom?.breakfastIncluded ? 'Breakfast' : null
+                  ].filter(Boolean).join(' • ') || '—'}</div>
+                </div>
               </div>
             </div>
           </Card>
