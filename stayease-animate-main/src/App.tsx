@@ -20,6 +20,7 @@ import Messages from "./pages/customer/Messages";
 import CustomerRoomDetails from "./pages/customer/CustomerRoomDetails";
 import CustomerPropertyDetails from "./pages/customer/PropertyDetails";
 import CustomerRoom from "./pages/customer/Room";
+import CustomerPayment from "./pages/customer/Payment";
 
 // Owner Pages
 import Properties from "./pages/owner/Properties";
@@ -95,6 +96,11 @@ const App = () => (
             <Route path="/dashboard/customer/room/:propertyId" element={
               <ProtectedRoute requiredRole="customer">
                 <CustomerRoom />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/customer/payment/:propertyId" element={
+              <ProtectedRoute requiredRole="customer">
+                <CustomerPayment />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/customer/search/:hotelId/:roomId" element={

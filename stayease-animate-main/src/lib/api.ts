@@ -149,6 +149,38 @@ export const PropertiesAPI = {
   },
 };
 
+// Bookings
+export interface Booking {
+  _id: string;
+  property: Property | string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  nights: number;
+  pricePerNight: number;
+  taxesAndFees: number;
+  totalAmount: number;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  createdAt: string;
+}
+
+export const BookingsAPI = {
+  async create(payload: { propertyId: string; checkIn: string; checkOut: string; guests: number }): Promise<ApiResponse<Booking>> {
+    const res = await fetch(`${API_BASE}/bookings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  },
+  async listMine(): Promise<ApiResponse<Booking[]>> {
+    const res = await fetch(`${API_BASE}/bookings/mine`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
+};
+
 export const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => resolve(reader.result as string);

@@ -7,6 +7,7 @@ require('express-async-errors');
 const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth');
 const propertyRoutes = require('./routes/properties');
+const bookingRoutes = require('./routes/bookings');
 
 const app = express();
 
@@ -49,6 +50,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Respond to preflight requests for all routes
+app.options('*', cors());
+
 // Body parsing middleware (allow larger payloads for base64 images)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -56,6 +60,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

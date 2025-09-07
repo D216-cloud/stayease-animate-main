@@ -6,56 +6,87 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar, MapPin, Clock, User, Phone, Mail, Star, ArrowRight, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import hotelImage from "@/assets/hotel-construction.jpg";
+import { BookingsAPI, type Booking, type Property } from "@/lib/api";
 
 const MyBookings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [selectedHotel, setSelectedHotel] = useState(null);
+  const [selectedHotel, setSelectedHotel] = useState<null | {
+    hotel: string;
+    location: string;
+    image: string;
+  }>(null);
   const [showContactDialog, setShowContactDialog] = useState(false);
-  const bookings = [
-    {
-      id: 1,
-      hotel: "Royal Palace Hotel",
-      location: "Paris, France",
-      checkIn: "2024-05-10",
-      checkOut: "2024-05-15",
-      guests: 2,
-      rooms: 1,
-      status: "confirmed",
-      totalAmount: 1495,
-      bookingRef: "RPH001234",
-      image: hotelImage
-    },
-    {
-      id: 2,
-      hotel: "Maldives Beach Resort",
-      location: "Maldives",
-      checkIn: "2024-06-01",
-      checkOut: "2024-06-05",
-      guests: 2,
-      rooms: 1,
-      status: "pending",
-      totalAmount: 2396,
-      bookingRef: "MBR005678",
-      image: hotelImage
-    },
-    {
-      id: 3,
-      hotel: "Tokyo Business Hotel",
-      location: "Tokyo, Japan",
-      checkIn: "2024-03-15",
-      checkOut: "2024-03-18",
-      guests: 1,
-      rooms: 1,
-      status: "completed",
-      totalAmount: 477,
-      bookingRef: "TBH009876",
-      image: hotelImage
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [apiBookings, setApiBookings] = useState<Booking[]>([]);
+
+  type UIBooking = {
+    id: string;
+    propertyId: string;
+    hotel: string;
+    location: string;
+    checkIn: string;
+    checkOut: string;
+    guests: number;
+    rooms: number;
+    status: "pending" | "confirmed" | "cancelled" | "completed" | string;
+    totalAmount: number;
+    bookingRef: string;
+    image: string;
+  };
+
+  // Fetch bookings from API
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await BookingsAPI.listMine();
+        if (!res.success) throw new Error(res.message || "Failed to load bookings");
+        if (mounted) setApiBookings(res.data || []);
+      } catch (e: unknown) {
+        console.error("Failed to fetch bookings", e);
+        const message = e instanceof Error ? e.message : "Failed to load bookings";
+        if (mounted) setError(message);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const mapToUi = useCallback((b: Booking): UIBooking | null => {
+    if (typeof b.property === "string" || !b.property) {
+      // If backend didn't populate property, skip gracefully for now
+      return null;
     }
-  ];
+    const prop = b.property as Property;
+    const img = (prop.defaultRoomImages && prop.defaultRoomImages[0]?.url)
+      || (prop.images && prop.images[0]?.url)
+      || hotelImage;
+    const location = [prop.city, prop.country].filter(Boolean).join(", ");
+    return {
+      id: b._id,
+      propertyId: prop._id,
+      hotel: prop.name,
+      location,
+      checkIn: b.checkIn,
+      checkOut: b.checkOut,
+      guests: b.guests,
+      rooms: 1,
+      status: b.status,
+      totalAmount: b.totalAmount,
+      bookingRef: b._id.slice(-8).toUpperCase(),
+      image: img,
+    };
+  }, []);
+
+  const bookings: UIBooking[] = useMemo(() => apiBookings.map(mapToUi).filter(Boolean) as UIBooking[], [apiBookings, mapToUi]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -75,12 +106,19 @@ const MyBookings = () => {
   const upcomingBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending');
   const pastBookings = bookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
 
-  const handleViewDetails = (booking) => {
-    // Navigate to room details page
-    navigate(`/dashboard/customer/search/${booking.id}/1`);
+  const stats = useMemo(() => {
+    const upcoming = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length;
+    const toReview = bookings.filter(b => b.status === 'completed').length;
+    const totalGuests = bookings.reduce((sum, b) => sum + (b.guests || 0), 0);
+    return { total: bookings.length, upcoming, totalGuests, toReview };
+  }, [bookings]);
+
+  const handleViewDetails = (booking: UIBooking) => {
+    // Navigate to room details page (property page)
+    navigate(`/dashboard/customer/room/${booking.propertyId}`);
   };
 
-  const handleCancelBooking = (bookingId) => {
+  const handleCancelBooking = (bookingId: string) => {
     // In a real app, this would make an API call
     toast({
       title: "Booking Cancelled",
@@ -90,8 +128,8 @@ const MyBookings = () => {
     console.log(`Cancelling booking ${bookingId}`);
   };
 
-  const handleContactHotel = (booking) => {
-    setSelectedHotel(booking);
+  const handleContactHotel = (booking: UIBooking) => {
+    setSelectedHotel({ hotel: booking.hotel, location: booking.location, image: booking.image });
     setShowContactDialog(true);
   };
 
@@ -148,7 +186,7 @@ const MyBookings = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">3</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.total}</p>
                     <p className="text-sm text-slate-600">Total Bookings</p>
                   </div>
                 </div>
@@ -168,7 +206,7 @@ const MyBookings = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">2</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.upcoming}</p>
                     <p className="text-sm text-slate-600">Upcoming</p>
                   </div>
                 </div>
@@ -188,7 +226,7 @@ const MyBookings = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">5</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.totalGuests}</p>
                     <p className="text-sm text-slate-600">Total Guests</p>
                   </div>
                 </div>
@@ -208,7 +246,7 @@ const MyBookings = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">1</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.toReview}</p>
                     <p className="text-sm text-slate-600">To Review</p>
                   </div>
                 </div>
@@ -229,6 +267,15 @@ const MyBookings = () => {
               </TabsList>
 
               <TabsContent value="upcoming" className="space-y-6 mt-8">
+                {loading && (
+                  <p className="text-center text-slate-600">Loading your bookings…</p>
+                )}
+                {error && !loading && (
+                  <p className="text-center text-red-600">{error}</p>
+                )}
+                {!loading && !error && upcomingBookings.length === 0 && (
+                  <Card className="p-8 text-center text-slate-600">No upcoming bookings yet.</Card>
+                )}
                 {upcomingBookings.map((booking) => (
                   <Card key={booking.id} className="group cursor-pointer bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
                     {/* Floating gradient orbs */}
@@ -301,7 +348,7 @@ const MyBookings = () => {
                                   Contact Hotel
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="sm:max-w-md">
+                              <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
                                 <DialogHeader>
                                   <DialogTitle>Contact {selectedHotel?.hotel}</DialogTitle>
                                 </DialogHeader>
@@ -371,6 +418,9 @@ const MyBookings = () => {
               </TabsContent>
 
               <TabsContent value="past" className="space-y-6 mt-8">
+                {!loading && !error && pastBookings.length === 0 && (
+                  <Card className="p-8 text-center text-slate-600">No past bookings.</Card>
+                )}
                 {pastBookings.map((booking) => (
                   <Card key={booking.id} className="group cursor-pointer bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
                     {/* Floating gradient orbs */}
@@ -442,7 +492,7 @@ const MyBookings = () => {
                                   Contact Hotel
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="sm:max-w-md">
+                              <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
                                 <DialogHeader>
                                   <DialogTitle>Contact {selectedHotel?.hotel}</DialogTitle>
                                 </DialogHeader>

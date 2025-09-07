@@ -233,8 +233,11 @@ const CustomerRoom = () => {
                           <Input placeholder="John Doe" value={bookingData.cardHolder} onChange={(e) => setBookingData({ ...bookingData, cardHolder: e.target.value })} />
                         </div>
 
-                        <Button onClick={handlePayment} className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
-                          Pay ${data.price}
+                        <Button onClick={() => {
+                          const q = new URLSearchParams({ checkIn: bookingData.checkIn || '', checkOut: bookingData.checkOut || '', guests: String(bookingData.guests || 1) });
+                          navigate(`/dashboard/customer/payment/${data._id}?${q.toString()}`);
+                        }} className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+                          Continue to Payment
                         </Button>
                       </div>
                     ) : (
