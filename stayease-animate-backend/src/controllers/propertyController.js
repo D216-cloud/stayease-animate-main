@@ -1,4 +1,5 @@
 const Property = require('../models/Property');
+const Booking = require('../models/Booking');
 const cloudinary = require('../config/cloudinary');
 const isCloudinaryConfigured = Boolean(
   process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
@@ -96,11 +97,6 @@ const getMyProperties = async (req, res) => {
   const ownerId = req.user.userId;
   const properties = await Property.find({ owner: ownerId }).sort({ createdAt: -1 });
   return res.json({ success: true, data: properties });
-};
-
-module.exports = {
-  createProperty,
-  getMyProperties,
 };
 
 // GET /api/properties/:id
@@ -220,10 +216,6 @@ const deleteProperty = async (req, res) => {
   return res.json({ success: true, message: 'Property deleted' });
 };
 
-module.exports.getPropertyById = getPropertyById;
-module.exports.updateProperty = updateProperty;
-module.exports.deleteProperty = deleteProperty;
-
 // GET /api/properties/public
 // Public listing of properties with basic search and pagination
 const listPublicProperties = async (req, res) => {
@@ -263,8 +255,6 @@ const listPublicProperties = async (req, res) => {
   });
 };
 
-module.exports.listPublicProperties = listPublicProperties;
-
 // GET /api/properties/public/:id
 // Public single property fetch
 const getPublicPropertyById = async (req, res) => {
@@ -276,4 +266,55 @@ const getPublicPropertyById = async (req, res) => {
   return res.json({ success: true, data: property });
 };
 
-module.exports.getPublicPropertyById = getPublicPropertyById;
+// GET /api/properties/mine/stats
+// Get my properties with individual statistics
+const getMyPropertiesWithStats = async (req, res) => {
+  const ownerId = req.user.userId;
+  const properties = await Property.find({ owner: ownerId }).lean();
+  const propertyIds = properties.map(p => p._id);
+
+  if (propertyIds.length === 0) {
+    return res.json({ success: true, data: [] });
+  }
+
+  const bookings = await Booking.find({ property: { $in: propertyIds } });
+
+  const bookingsByProperty = bookings.reduce((acc, booking) => {
+    const propId = booking.property.toString();
+    if (!acc[propId]) {
+      acc[propId] = [];
+    }
+    acc[propId].push(booking);
+    return acc;
+  }, {});
+
+  const propertiesWithStats = properties.map(property => {
+    const propBookings = bookingsByProperty[property._id.toString()] || [];
+
+    const guests = propBookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.guests, 0);
+    const revenue = propBookings.filter(b => b.status === 'completed' || b.status === 'confirmed').reduce((sum, b) => sum + b.totalAmount, 0);
+    const nightsBooked = propBookings.reduce((sum, b) => sum + b.nights, 0);
+    const occupancy = property.rooms > 0 ? Math.min(100, (nightsBooked / (property.rooms * 30)) * 100) : 0;
+
+    return {
+      ...property,
+      guests,
+      revenue: revenue.toFixed(2),
+      occupancy: Math.round(occupancy),
+      status: property.isActive ? 'Active' : 'Inactive',
+    };
+  });
+
+  res.json({ success: true, data: propertiesWithStats });
+};
+
+module.exports = {
+  createProperty,
+  getMyProperties,
+  getPropertyById,
+  updateProperty,
+  deleteProperty,
+  listPublicProperties,
+  getPublicPropertyById,
+  getMyPropertiesWithStats,
+};

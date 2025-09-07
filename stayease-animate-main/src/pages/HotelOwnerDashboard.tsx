@@ -35,30 +35,57 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PropertyWithStats, PropertiesAPI, BookingsAPI } from "@/lib/api";
+import { useEffect, useState } from "react";
 import globeImage from "@/assets/globe-travel-routes.jpg";
-import hotelImage from "@/assets/hotel-construction.jpg";
 
 const HotelOwnerDashboard = () => {
-  const properties = [
-    {
-      id: 1,
-      name: "Royal Inn",
-      location: "Paris, France",
-      status: "Active",
-      guests: 200,
-      revenue: "$15,200",
-      occupancy: 85
-    },
-    {
-      id: 2,
-      name: "Beach Resort",
-      location: "Maldives",
-      status: "Pending",
-      guests: 150,
-      revenue: "$12,800",
-      occupancy: 72
-    },
-  ];
+  const [stats, setStats] = useState({
+    totalProperties: 0,
+    activeBookings: 0,
+    totalGuests: 0,
+    totalRevenue: "0.00",
+    occupancyRate: "0",
+    recentBookings: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await BookingsAPI.getOwnerDashboardStats();
+        if (response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const [properties, setProperties] = useState<PropertyWithStats[]>([]);
+  const [loadingProperties, setLoadingProperties] = useState(true);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const response = await PropertiesAPI.listMineWithStats();
+        if (response.success && response.data) {
+          setProperties(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch properties with stats", error);
+      } finally {
+        setLoadingProperties(false);
+      }
+    };
+
+    fetchProperties();
+  }, []);
 
   return (
     <DashboardLayout userRole="hotel-owner">
@@ -142,7 +169,7 @@ const HotelOwnerDashboard = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">2</p>
+                    <p className="text-3xl font-bold text-slate-900">{loading ? '...' : stats.activeBookings}</p>
                     <p className="text-sm text-slate-600">Total Properties</p>
                   </div>
                 </div>
@@ -162,7 +189,7 @@ const HotelOwnerDashboard = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">5</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.activeBookings}</p>
                     <p className="text-sm text-slate-600">Active Bookings</p>
                   </div>
                 </div>
@@ -182,7 +209,7 @@ const HotelOwnerDashboard = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">350</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.totalGuests}</p>
                     <p className="text-sm text-slate-600">Total Guests</p>
                   </div>
                 </div>
@@ -202,7 +229,7 @@ const HotelOwnerDashboard = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">78%</p>
+                    <p className="text-3xl font-bold text-slate-900">{loading ? '...' : `${stats.occupancyRate}%`}</p>
                     <p className="text-sm text-slate-600">Occupancy Rate</p>
                   </div>
                 </div>
@@ -244,12 +271,12 @@ const HotelOwnerDashboard = () => {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-4">
                     <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full animate-pulse"></div>
-                    <span className="text-slate-700 font-medium">New booking at Royal Inn</span>
+                    <span className="text-slate-700 font-medium">New booking at {stats.recentBookings[0]?.property.name}</span>
                     <span className="text-xs text-slate-500 ml-auto">2h ago</span>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
-                    <span className="text-slate-700 font-medium">Guest checked out - Beach Resort</span>
+                    <span className="text-slate-700 font-medium">Guest checked out - {stats.recentBookings[1]?.property.name}</span>
                     <span className="text-xs text-slate-500 ml-auto">4h ago</span>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -297,7 +324,7 @@ const HotelOwnerDashboard = () => {
                   </TableHeader>
                   <TableBody>
                     {properties.map((property) => (
-                      <TableRow key={property.id} className="hover:bg-slate-50/50 transition-colors">
+                      <TableRow key={property._id} className="hover:bg-slate-50/50 transition-colors">
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -306,20 +333,20 @@ const HotelOwnerDashboard = () => {
                             <span className="font-medium text-slate-900">{property.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-slate-700">{property.location}</TableCell>
+                        <TableCell className="text-slate-700">{property.city}, {property.country}</TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             className={`px-3 py-1 rounded-full font-medium ${
-                              property.status === 'Active' 
-                                ? 'bg-green-100 text-green-800' 
+                              (property.status || 'Inactive') === 'Active'
+                                ? 'bg-green-100 text-green-800'
                                 : 'bg-amber-100 text-amber-800'
                             }`}
                           >
-                            {property.status}
+                            {property.status || 'Inactive'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-slate-900 font-medium">{property.guests}</TableCell>
-                        <TableCell className="text-slate-900 font-medium">{property.revenue}</TableCell>
+                        <TableCell className="text-slate-900 font-medium">${property.revenue}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <div className="w-16 bg-slate-200 rounded-full h-2">
@@ -364,14 +391,14 @@ const HotelOwnerDashboard = () => {
             {/* Mobile card list */}
             <div className="md:hidden space-y-4">
               {properties.map(property => (
-                <Card key={property.id} className="bg-white/95 backdrop-blur-md border-0 shadow-lg overflow-hidden">
+                <Card key={property._id} className="bg-white/95 backdrop-blur-md border-0 shadow-lg overflow-hidden">
                   <div className="p-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-semibold text-slate-900">{property.name}</h4>
-                        <p className="text-xs text-slate-600">{property.location}</p>
+                        <p className="text-xs text-slate-600">{property.city}, {property.country}</p>
                       </div>
-                      <Badge className={property.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>{property.status}</Badge>
+                      <Badge className={(property.status || 'Inactive') === 'Active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>{property.status || 'Inactive'}</Badge>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-600">
                       <div>Guests: <span className="font-medium text-slate-900">{property.guests}</span></div>

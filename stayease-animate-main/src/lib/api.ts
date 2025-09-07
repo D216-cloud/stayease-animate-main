@@ -67,6 +67,13 @@ export interface Property {
   updatedAt: string;
 }
 
+export interface PropertyWithStats extends Property {
+  status: string;
+  guests: number;
+  revenue: string;
+  occupancy: number;
+}
+
 export interface ApiResponse<T> { success: boolean; data?: T; message?: string }
 export interface PaginatedResponse<T> extends ApiResponse<T> {
   pagination?: { page: number; limit: number; total: number; totalPages: number };
@@ -147,6 +154,12 @@ export const PropertiesAPI = {
     const res = await fetch(`${API_BASE}/properties/public/${id}`);
     return res.json();
   },
+  async listMineWithStats(): Promise<ApiResponse<PropertyWithStats[]>> {
+    const res = await fetch(`${API_BASE}/properties/mine/with-stats`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
 };
 
 // Bookings
@@ -211,6 +224,19 @@ export const BookingsAPI = {
   },
   async ownerRatingsSummary(): Promise<ApiResponse<{ averageRating: number; totalReviews: number }>> {
     const res = await fetch(`${API_BASE}/bookings/owner/ratings`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
+  async getOwnerDashboardStats(): Promise<ApiResponse<{
+    totalProperties: number;
+    activeBookings: number;
+    totalGuests: number;
+    totalRevenue: string;
+    occupancyRate: string;
+    recentBookings: Booking[];
+  }>> {
+    const res = await fetch(`${API_BASE}/bookings/owner/stats`, {
       headers: { ...getAuthHeaders() },
     });
     return res.json();

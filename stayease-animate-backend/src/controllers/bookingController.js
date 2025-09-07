@@ -142,4 +142,70 @@ const ownerRatingsSummary = async (req, res) => {
   return res.json({ success: true, averageRating, totalReviews });
 };
 
- module.exports = { createBooking, listMyBookings, listOwnerBookings, updateBookingStatus, cancelMyBooking, addReview, ownerRatingsSummary };
+// GET /api/dashboard/owner/stats
+// Get dashboard stats for the authenticated hotel owner
+const getOwnerDashboardStats = async (req, res) => {
+  const ownerId = req.user.userId;
+
+  // Get properties for the owner
+  const properties = await Property.find({ owner: ownerId });
+  const propertyIds = properties.map(p => p._id);
+  const totalProperties = properties.length;
+
+  if (propertyIds.length === 0) {
+    return res.json({
+      success: true,
+      data: {
+        totalProperties: 0,
+        activeBookings: 0,
+        totalGuests: 0,
+        totalRevenue: 0,
+        occupancyRate: 0,
+        recentBookings: [],
+      },
+    });
+  }
+
+  // Get all bookings for these properties
+  const bookings = await Booking.find({ property: { $in: propertyIds } });
+
+  const activeBookings = bookings.filter(b => b.status === 'confirmed').length;
+  const totalGuests = bookings.reduce((sum, b) => sum + b.guests, 0);
+  const totalRevenue = bookings.filter(b => b.status === 'completed' || b.status === 'confirmed').reduce((sum, b) => sum + b.totalAmount, 0);
+
+  // For a simple occupancy rate, we can consider total nights booked vs total rooms * days.
+  // This is a simplification. A real-world scenario would be more complex.
+  const totalNightsBooked = bookings.reduce((sum, b) => sum + b.nights, 0);
+  const totalRooms = properties.reduce((sum, p) => sum + p.rooms, 0);
+  // Assuming a 30-day window for simplicity
+  const occupancyRate = totalRooms > 0 ? Math.min(100, (totalNightsBooked / (totalRooms * 30)) * 100) : 0;
+
+  const recentBookings = await Booking.find({ property: { $in: propertyIds } })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate('customer', 'fullName')
+    .populate('property', 'name');
+
+  return res.json({
+    success: true,
+    data: {
+      totalProperties,
+      activeBookings,
+      totalGuests,
+      totalRevenue: totalRevenue.toFixed(2),
+      occupancyRate: occupancyRate.toFixed(0),
+      recentBookings,
+    },
+  });
+};
+
+module.exports = {
+  createBooking,
+  listMyBookings,
+  listOwnerBookings,
+  updateBookingStatus,
+  cancelMyBooking,
+  addReview,
+  ownerRatingsSummary,
+  getOwnerDashboardStats,
+};
