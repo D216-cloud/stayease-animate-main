@@ -1,9 +1,33 @@
 // Minimal API client for properties with auth header support
 const env = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
-// Normalize API base to always point to the '/api' root and avoid double '/api'
-const rawBase = (env?.VITE_API_BASE_URL || env?.VITE_API_URL || 'http://localhost:5000').trim();
-const trimmedBase = rawBase.replace(/\/+$/, '');
-export const API_BASE = trimmedBase.endsWith('/api') ? trimmedBase : `${trimmedBase}/api`;
+// Normalize to exactly '<origin>/api' (strip any extra path such as '/api/properties')
+(() => {
+  const raw = (env?.VITE_API_BASE_URL || env?.VITE_API_URL || 'http://localhost:5000').trim();
+  try {
+    const u = new URL(raw);
+    // Keep origin only
+    const origin = `${u.protocol}//${u.host}`;
+  // Optionally expose origin for debugging (commented to avoid lint issues)
+  // (window as unknown as Record<string, unknown>).__API_ORIGIN__ = origin;
+    // Export below
+  } catch {
+    // If not a full URL, assume origin missing and default to localhost:5000
+  }
+})();
+
+const computeApiBase = (): string => {
+  const raw = (env?.VITE_API_BASE_URL || env?.VITE_API_URL || 'http://localhost:5000').trim();
+  // If raw already contains 'http', parse; else prefix http://
+  const base = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+  let url: URL;
+  try { url = new URL(base); } catch {
+    url = new URL('http://localhost:5000');
+  }
+  const origin = `${url.protocol}//${url.host}`;
+  return `${origin}/api`;
+};
+
+export const API_BASE = computeApiBase();
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('authToken');
@@ -28,6 +52,7 @@ export interface Property {
   price: number;
   amenities: string[];
   images: ImageInfo[];
+  defaultRoomImages?: ImageInfo[];
   defaultRoom?: {
     name?: string;
     roomType?: string;
@@ -43,6 +68,9 @@ export interface Property {
 }
 
 export interface ApiResponse<T> { success: boolean; data?: T; message?: string }
+export interface PaginatedResponse<T> extends ApiResponse<T> {
+  pagination?: { page: number; limit: number; total: number; totalPages: number };
+}
 
 export interface CreatePropertyPayload {
   name: string;
@@ -59,12 +87,15 @@ export interface CreatePropertyPayload {
   price: number;
   amenities?: string[];
   images?: string[]; // data URLs
+  defaultRoomImages?: string[]; // data URLs for the default room
   defaultRoom?: Property['defaultRoom'];
 }
 
 export interface UpdatePropertyPayload extends Partial<CreatePropertyPayload> {
   newImages?: string[];
   removeImagePublicIds?: string[];
+  newDefaultRoomImages?: string[];
+  removeRoomImagePublicIds?: string[];
   isActive?: boolean;
 }
 
@@ -102,6 +133,18 @@ export const PropertiesAPI = {
       method: 'DELETE',
       headers: { ...getAuthHeaders() },
     });
+    return res.json();
+  },
+  async listPublic(params: { page?: number; limit?: number; search?: string } = {}): Promise<PaginatedResponse<Property[]>> {
+    const url = new URL(`${API_BASE}/properties/public`);
+    if (params.page) url.searchParams.set('page', String(params.page));
+    if (params.limit) url.searchParams.set('limit', String(params.limit));
+    if (params.search) url.searchParams.set('search', params.search);
+    const res = await fetch(url.toString());
+    return res.json();
+  },
+  async getPublic(id: string): Promise<ApiResponse<Property>> {
+    const res = await fetch(`${API_BASE}/properties/public/${id}`);
     return res.json();
   },
 };

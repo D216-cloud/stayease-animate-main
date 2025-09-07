@@ -26,69 +26,47 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import hotelImage from "@/assets/hotel-construction.jpg";
+import { PropertiesAPI, type Property } from "@/lib/api";
 
 const RoomDetails = () => {
   const navigate = useNavigate();
   const { propertyId } = useParams();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sample room data - in a real app this would come from an API
-  const roomData = {
-    id: "R001",
-    name: "Deluxe Ocean View Suite",
-    propertyName: "Royal Palace Hotel",
-    propertyLocation: "Paris, France",
-    type: "Suite",
-    capacity: 4,
-    beds: "1 King Bed + 1 Sofa Bed",
-    bathrooms: 2,
-    size: "850 sq ft",
-    price: 299,
-    rating: 4.8,
-    reviews: 127,
-    status: "Available",
-    description: "Experience luxury living in our Deluxe Ocean View Suite, featuring stunning panoramic ocean views, premium amenities, and spacious living areas perfect for families or business travelers.",
-    amenities: [
-      "Free WiFi", "Ocean View", "Balcony", "Mini Bar", "Room Service",
-      "Air Conditioning", "Flat Screen TV", "Safe Box", "Hair Dryer", "Coffee Maker",
-      "Iron & Ironing Board", "Bathrobes", "Slippers", "24/7 Concierge"
-    ],
-    features: [
-      "Panoramic Ocean Views",
-      "Private Balcony",
-      "Marble Bathroom",
-      "Walk-in Closet",
-      "Soundproof Windows",
-      "Climate Control",
-      "Electronic Safe",
-      "USB Charging Ports"
-    ],
-    policies: [
-      "Check-in: 3:00 PM",
-      "Check-out: 11:00 AM",
-      "No smoking",
-      "Pets allowed with fee",
-      "Free cancellation up to 24 hours",
-      "Payment upon check-in"
-    ]
-  };
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!propertyId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await PropertiesAPI.get(propertyId);
+        if (!cancelled) {
+          if (res.success && res.data) {
+            setProperty(res.data);
+            setCurrentImageIndex(0);
+          } else {
+            setError(res.message || "Failed to load property");
+          }
+        }
+      } catch (e) {
+        if (!cancelled) setError("Failed to load property");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [propertyId]);
 
-  // Sample images - 10 different room images
-  const roomImages = [
-    hotelImage,
-    hotelImage,
-    hotelImage,
-    hotelImage,
-    hotelImage,
-    hotelImage,
-    hotelImage,
-    hotelImage,
-    hotelImage,
-    hotelImage
-  ];
+  // Derive image list from property
+  const roomImages = property?.images?.length ? property.images.map(i => i.url) : [hotelImage];
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % roomImages.length);
@@ -144,7 +122,7 @@ const RoomDetails = () => {
                 <div className="aspect-video overflow-hidden">
                   <img
                     src={roomImages[currentImageIndex]}
-                    alt={`${roomData.name} - Image ${currentImageIndex + 1}`}
+                    alt={`${property?.name || 'Room'} - Image ${currentImageIndex + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -201,44 +179,44 @@ const RoomDetails = () => {
             <Card className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-900 mb-2">{roomData.name}</h1>
+                  <h1 className="text-2xl font-bold text-slate-900 mb-2">{property?.defaultRoom?.name || 'Room'}</h1>
                   <div className="flex items-center space-x-4 text-sm text-slate-600">
                     <div className="flex items-center space-x-1">
                       <Building className="w-4 h-4" />
-                      <span>{roomData.propertyName}</span>
+                      <span>{property?.name || '—'}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <MapPin className="w-4 h-4" />
-                      <span>{roomData.propertyLocation}</span>
+                      <span>{property ? `${property.city}, ${property.country}` : ''}</span>
                     </div>
                   </div>
                 </div>
-                <Badge className="bg-green-100 text-green-800">{roomData.status}</Badge>
+                <Badge className="bg-green-100 text-green-800">{property?.isActive ? 'Active' : 'Inactive'}</Badge>
               </div>
 
-              <p className="text-slate-700 mb-6">{roomData.description}</p>
+              <p className="text-slate-700 mb-6">{property?.description || 'No description provided.'}</p>
 
               {/* Key Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="text-center p-3 bg-slate-50 rounded-lg">
                   <Users className="w-5 h-5 text-slate-600 mx-auto mb-1" />
                   <p className="text-sm text-slate-600">Capacity</p>
-                  <p className="font-semibold text-slate-900">{roomData.capacity} guests</p>
+                  <p className="font-semibold text-slate-900">{typeof property?.defaultRoom?.capacity === 'number' ? `${property.defaultRoom.capacity} guests` : '—'}</p>
                 </div>
                 <div className="text-center p-3 bg-slate-50 rounded-lg">
                   <Bed className="w-5 h-5 text-slate-600 mx-auto mb-1" />
                   <p className="text-sm text-slate-600">Bed</p>
-                  <p className="font-semibold text-slate-900">{roomData.beds}</p>
+                  <p className="font-semibold text-slate-900">{property?.defaultRoom?.bedType || '—'}</p>
                 </div>
                 <div className="text-center p-3 bg-slate-50 rounded-lg">
                   <Bath className="w-5 h-5 text-slate-600 mx-auto mb-1" />
                   <p className="text-sm text-slate-600">Bathrooms</p>
-                  <p className="font-semibold text-slate-900">{roomData.bathrooms}</p>
+                  <p className="font-semibold text-slate-900">—</p>
                 </div>
                 <div className="text-center p-3 bg-slate-50 rounded-lg">
                   <Square className="w-5 h-5 text-slate-600 mx-auto mb-1" />
                   <p className="text-sm text-slate-600">Size</p>
-                  <p className="font-semibold text-slate-900">{roomData.size}</p>
+                  <p className="font-semibold text-slate-900">{typeof property?.defaultRoom?.size === 'number' ? `${property.defaultRoom.size} sqm` : '—'}</p>
                 </div>
               </div>
 
@@ -246,8 +224,8 @@ const RoomDetails = () => {
               <div className="flex items-center space-x-4 mb-6">
                 <div className="flex items-center space-x-1">
                   <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  <span className="font-semibold text-slate-900">{roomData.rating}</span>
-                  <span className="text-slate-600">({roomData.reviews} reviews)</span>
+                  <span className="font-semibold text-slate-900">—</span>
+                  <span className="text-slate-600">(reviews coming soon)</span>
                 </div>
               </div>
             </Card>
@@ -258,7 +236,7 @@ const RoomDetails = () => {
             {/* Pricing Card */}
             <Card className="p-6">
               <div className="text-center mb-6">
-                <div className="text-3xl font-bold text-slate-900 mb-1">${roomData.price}</div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">${property?.price ?? '--'}</div>
                 <div className="text-slate-600">per night</div>
               </div>
 
@@ -284,19 +262,19 @@ const RoomDetails = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-slate-600">Property</span>
-                  <span className="font-medium text-slate-900">{roomData.propertyName}</span>
+                  <span className="font-medium text-slate-900">{property?.name || '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Location</span>
-                  <span className="font-medium text-slate-900">{roomData.propertyLocation}</span>
+                  <span className="font-medium text-slate-900">{property ? `${property.city}, ${property.country}` : ''}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Room Type</span>
-                  <span className="font-medium text-slate-900">{roomData.type}</span>
+                  <span className="font-medium text-slate-900">{property?.defaultRoom?.roomType || '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Room ID</span>
-                  <span className="font-medium text-slate-900">{roomData.id}</span>
+                  <span className="font-medium text-slate-900">{property?._id}</span>
                 </div>
               </div>
             </Card>
@@ -307,7 +285,7 @@ const RoomDetails = () => {
         <Card className="p-6">
           <h3 className="text-xl font-semibold text-slate-900 mb-4">Amenities & Features</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {roomData.amenities.map((amenity, index) => (
+            {(property?.amenities || []).map((amenity, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <CheckCircle className="w-4 h-4 text-green-500" />
                 <span className="text-slate-700">{amenity}</span>
@@ -320,7 +298,11 @@ const RoomDetails = () => {
         <Card className="p-6">
           <h3 className="text-xl font-semibold text-slate-900 mb-4">Room Features</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {roomData.features.map((feature, index) => (
+            {(property?.defaultRoom ? [
+              property.defaultRoom.name && `Name: ${property.defaultRoom.name}`,
+              property.defaultRoom.bedType && `Bed: ${property.defaultRoom.bedType}`,
+              typeof property.defaultRoom.capacity === 'number' && `Capacity: ${property.defaultRoom.capacity}`
+            ].filter(Boolean) as string[] : []).map((feature, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <CheckCircle className="w-4 h-4 text-blue-500" />
                 <span className="text-slate-700">{feature}</span>
@@ -333,7 +315,7 @@ const RoomDetails = () => {
         <Card className="p-6">
           <h3 className="text-xl font-semibold text-slate-900 mb-4">Policies & Rules</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {roomData.policies.map((policy, index) => (
+            {["Check-in after 3 PM","Check-out by 11 AM","No smoking"].map((policy, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
                 <span className="text-slate-700">{policy}</span>

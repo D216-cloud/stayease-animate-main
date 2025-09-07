@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const ImageSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
-    public_id: { type: String, required: true },
+  // public_id is optional when Cloudinary isn't used (we store data URLs locally)
+  public_id: { type: String, default: '' },
   },
   { _id: false }
 );
@@ -25,6 +26,8 @@ const PropertySchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     amenities: [{ type: String }],
     images: { type: [ImageSchema], default: [] },
+  // Images specific to the default room (customer-facing room preview)
+  defaultRoomImages: { type: [ImageSchema], default: [] },
     defaultRoom: {
       name: { type: String, default: '' },
       roomType: { type: String, default: '' },

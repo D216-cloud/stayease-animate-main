@@ -18,6 +18,8 @@ import MyBookings from "./pages/customer/MyBookings";
 import Wishlist from "./pages/customer/Wishlist";
 import Messages from "./pages/customer/Messages";
 import CustomerRoomDetails from "./pages/customer/CustomerRoomDetails";
+import CustomerPropertyDetails from "./pages/customer/PropertyDetails";
+import CustomerRoom from "./pages/customer/Room";
 
 // Owner Pages
 import Properties from "./pages/owner/Properties";
@@ -83,6 +85,16 @@ const App = () => (
             <Route path="/dashboard/customer/search" element={
               <ProtectedRoute requiredRole="customer">
                 <SearchHotels />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/customer/property/:propertyId" element={
+              <ProtectedRoute requiredRole="customer">
+                <CustomerPropertyDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/customer/room/:propertyId" element={
+              <ProtectedRoute requiredRole="customer">
+                <CustomerRoom />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/customer/search/:hotelId/:roomId" element={

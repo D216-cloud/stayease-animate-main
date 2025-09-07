@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
@@ -7,79 +7,53 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, MapPin, Star, Heart, Filter, Calendar, Users, Wifi, Car, Coffee, ArrowRight, X } from "lucide-react";
+import { Search, MapPin, Star, Heart, Filter, Calendar, Users, Wifi, Car, Coffee, ArrowRight, X, Bed, Square } from "lucide-react";
 import hotelImage from "@/assets/hotel-construction.jpg";
+import { PropertiesAPI, type Property } from "@/lib/api";
 
 const SearchHotels = () => {
   const navigate = useNavigate();
-  const [priceRange, setPriceRange] = useState([100, 500]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [priceBounds, setPriceBounds] = useState<{ min: number; max: number }>({ min: 0, max: 1000 });
   const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recommended");
 
-  const hotels = useMemo(() => [
-    {
-      id: 1,
-      name: "Royal Palace Hotel",
-      location: "Paris, France",
-      rating: 4.8,
-      price: 299,
-      amenities: ["Free WiFi", "Parking", "Pool", "Spa"],
-      image: hotelImage,
-      category: "luxury"
-    },
-    {
-      id: 2,
-      name: "Maldives Beach Resort",
-      location: "Maldives",
-      rating: 4.9,
-      price: 599,
-      amenities: ["Beach", "Free WiFi", "Restaurant", "Spa"],
-      image: hotelImage,
-      category: "beach"
-    },
-    {
-      id: 3,
-      name: "Alpine Mountain Lodge",
-      location: "Swiss Alps",
-      rating: 4.7,
-      price: 199,
-      amenities: ["Mountain View", "Free WiFi", "Fireplace"],
-      image: hotelImage,
-      category: "mountain"
-    },
-    {
-      id: 4,
-      name: "Tokyo Business Hotel",
-      location: "Tokyo, Japan",
-      rating: 4.6,
-      price: 159,
-      amenities: ["Free WiFi", "Business Center", "Gym"],
-      image: hotelImage,
-      category: "business"
-    },
-    {
-      id: 5,
-      name: "Barcelona City Center",
-      location: "Barcelona, Spain",
-      rating: 4.5,
-      price: 189,
-      amenities: ["Free WiFi", "Restaurant", "Gym"],
-      image: hotelImage,
-      category: "city"
-    },
-    {
-      id: 6,
-      name: "Santorini Cliffside",
-      location: "Santorini, Greece",
-      rating: 4.9,
-      price: 349,
-      amenities: ["Ocean View", "Free WiFi", "Pool", "Spa"],
-      image: hotelImage,
-      category: "luxury"
-    }
-  ], []);
+  // Server data and pagination
+  const [hotels, setHotels] = useState<Property[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    const fetchHotels = async () => {
+      setIsLoading(true);
+      try {
+        const res = await PropertiesAPI.listPublic({ page, limit: 9, search: searchQuery || undefined });
+        if (!ignore && res.success && Array.isArray(res.data)) {
+          setHotels(res.data);
+          setTotalPages(res.pagination?.totalPages || 1);
+          setTotal(res.pagination?.total || res.data.length);
+          // compute dynamic price bounds
+          const prices = res.data.map(h => typeof h.price === 'number' ? h.price : 0);
+          const min = prices.length ? Math.min(...prices) : 0;
+          const max = prices.length ? Math.max(...prices) : 1000;
+          setPriceBounds({ min: Math.max(0, Math.floor(min)), max: Math.ceil(Math.max(max, 50)) });
+          // reset range to full bounds when page/search changes
+          setPriceRange([Math.max(0, Math.floor(min)), Math.ceil(Math.max(max, 50))]);
+        }
+      } catch (e) {
+        // noop
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    };
+    fetchHotels();
+    return () => { ignore = true; };
+  }, [page, searchQuery]);
 
   const amenityIcons = {
     "Free WiFi": Wifi,
@@ -95,60 +69,43 @@ const SearchHotels = () => {
     "Ocean View": "🌊"
   };
 
-  // Filter and sort hotels
+  // Filter and sort hotels (client-side refinement)
   const filteredAndSortedHotels = useMemo(() => {
-    const filtered = hotels.filter(hotel => {
+    const filtered = hotels.filter((hotel) => {
       // Price filter
-      if (hotel.price < priceRange[0] || hotel.price > priceRange[1]) {
+      if ((hotel.price ?? 0) < priceRange[0] || (hotel.price ?? 0) > priceRange[1]) {
         return false;
       }
 
-      // Rating filter
-      if (selectedRatings.length > 0 && !selectedRatings.some(rating => hotel.rating >= rating)) {
-        return false;
+      // Amenities filter (match any selected amenity)
+      if (selectedAmenities.length > 0) {
+        const amenities = hotel.amenities || [];
+        const hasAny = selectedAmenities.some(a => amenities.includes(a));
+        if (!hasAny) return false;
       }
 
-      // Amenities filter
-      if (selectedAmenities.length > 0 && !selectedAmenities.every(amenity => hotel.amenities.includes(amenity))) {
-        return false;
-      }
-
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesName = hotel.name.toLowerCase().includes(query);
-        const matchesLocation = hotel.location.toLowerCase().includes(query);
-        const matchesAmenities = hotel.amenities.some(amenity => amenity.toLowerCase().includes(query));
-        const matchesCategory = hotel.category?.toLowerCase().includes(query);
-
-        if (!matchesName && !matchesLocation && !matchesAmenities && !matchesCategory) {
-          return false;
-        }
-      }
-
+      // Server already filters by search; we only refine here
       return true;
     });
 
     // Sort hotels
     switch (sortBy) {
       case "price-low":
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
         break;
       case "price-high":
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
         break;
       case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
+        // optional later
         break;
       case "recommended":
       default:
-        // Keep original order for recommended
         break;
     }
 
     return filtered;
-  }, [hotels, priceRange, selectedRatings, selectedAmenities, searchQuery, sortBy]);
-
+  }, [hotels, priceRange, selectedAmenities, sortBy]);
   const handleRatingChange = (rating: number, checked: boolean) => {
     if (checked) {
       setSelectedRatings(prev => [...prev, rating]);
@@ -173,6 +130,10 @@ const SearchHotels = () => {
   };
 
   const activeFiltersCount = selectedRatings.length + selectedAmenities.length + (priceRange[0] !== 100 || priceRange[1] !== 500 ? 1 : 0);
+
+  const goToPage = (p: number) => {
+    setPage(Math.max(1, Math.min(totalPages, p)));
+  };
 
   return (
     <DashboardLayout userRole="customer">
@@ -266,9 +227,9 @@ const SearchHotels = () => {
                     </label>
                     <Slider
                       value={priceRange}
-                      onValueChange={setPriceRange}
-                      max={1000}
-                      min={50}
+                      onValueChange={(v: number[]) => setPriceRange([v[0] ?? priceBounds.min, v[1] ?? priceBounds.max])}
+                      max={priceBounds.max}
+                      min={priceBounds.min}
                       step={10}
                       className="w-full"
                     />
@@ -347,7 +308,7 @@ const SearchHotels = () => {
                           Hotels
                         </span>
                       </h2>
-                      <p className="text-slate-600">{filteredAndSortedHotels.length} hotels found</p>
+                      <p className="text-slate-600">Showing {filteredAndSortedHotels.length} of {total} hotels</p>
                     </div>
                     <Select value={sortBy} onValueChange={setSortBy}>
                       <SelectTrigger className="w-48 bg-white/95 backdrop-blur-md border-slate-200/50 rounded-2xl shadow-lg">
@@ -364,8 +325,15 @@ const SearchHotels = () => {
 
                   <div className="grid gap-6">
                     {filteredAndSortedHotels.length > 0 ? (
-                      filteredAndSortedHotels.map((hotel, index) => (
-                        <Card key={hotel.id} className="group cursor-pointer bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
+                      filteredAndSortedHotels.map((hotel) => (
+                        <Card
+                          key={hotel._id}
+                          className="group cursor-pointer bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative"
+                          onClick={() => {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            navigate(`/dashboard/customer/room/${hotel._id}`);
+                          }}
+                        >
                           {/* Floating gradient orbs */}
                           <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-2xl group-hover:scale-125 transition-all duration-700" />
                           <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-2xl group-hover:scale-125 transition-all duration-700" />
@@ -374,7 +342,7 @@ const SearchHotels = () => {
                             {/* Hotel Image */}
                             <div className="h-48 md:h-56 md:w-64 overflow-hidden relative">
                               <img
-                                src={hotel.image}
+                                src={(hotel.defaultRoomImages && hotel.defaultRoomImages[0]?.url) || (hotel.images && hotel.images[0]?.url) || hotelImage}
                                 alt={hotel.name}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               />
@@ -393,11 +361,7 @@ const SearchHotels = () => {
                               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0 mb-4">
                                 <div className="flex items-center space-x-1">
                                   <MapPin className="w-3 h-3 md:w-4 md:h-4 text-slate-500" />
-                                  <span className="text-xs md:text-sm text-slate-600 font-medium">{hotel.location}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Star className="w-3 h-3 md:w-4 md:h-4 fill-amber-400 text-amber-400" />
-                                  <span className="text-xs md:text-sm text-slate-600 font-medium">{hotel.rating}</span>
+                                  <span className="text-xs md:text-sm text-slate-600 font-medium">{hotel.city}, {hotel.country}</span>
                                 </div>
                               </div>
 
@@ -415,13 +379,45 @@ const SearchHotels = () => {
                                 )}
                               </div>
 
+                              {/* Default Room summary (room card preview) */}
+                              <div className="mb-4">
+                                {hotel.defaultRoom ? (
+                                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="font-medium text-slate-900 text-sm">
+                                        {hotel.defaultRoom.name || hotel.defaultRoom.roomType || 'Room'}
+                                      </div>
+                                      <div className="text-xs text-slate-500">from ${hotel.price}/night</div>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-slate-700">
+                                      {typeof hotel.defaultRoom.capacity === 'number' && (
+                                        <div className="flex items-center gap-1"><Users className="w-3 h-3" /> {hotel.defaultRoom.capacity} guests</div>
+                                      )}
+                                      {hotel.defaultRoom.bedType && (
+                                        <div className="flex items-center gap-1"><Bed className="w-3 h-3" /> {hotel.defaultRoom.bedType}</div>
+                                      )}
+                                      {typeof hotel.defaultRoom.size === 'number' && (
+                                        <div className="flex items-center gap-1"><Square className="w-3 h-3" /> {hotel.defaultRoom.size} m²</div>
+                                      )}
+                                      <div className="flex items-center gap-1"><Coffee className="w-3 h-3" /> {hotel.defaultRoom.breakfastIncluded ? 'Breakfast' : 'No breakfast'}</div>
+                                      <div className="flex items-center gap-1">{hotel.defaultRoom.smokingAllowed ? 'Smoking allowed' : 'Non‑smoking'}</div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-slate-600">Rooms available: {hotel.rooms}</div>
+                                )}
+                              </div>
+
                               <div className="flex items-center justify-between">
                                 <div>
                                   <span className="text-xl md:text-2xl font-bold text-slate-900">${hotel.price}</span>
                                   <span className="text-xs md:text-sm text-slate-600">/night</span>
                                 </div>
                                 <Button
-                                  onClick={() => navigate(`/dashboard/customer/search/${hotel.id}/1`)}
+                                  onClick={() => {
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    navigate(`/dashboard/customer/room/${hotel._id}`);
+                                  }}
                                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 md:px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-medium text-sm md:text-base"
                                 >
                                   Book Now
@@ -447,6 +443,41 @@ const SearchHotels = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1}
+                        onClick={() => { goToPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        className="rounded-lg"
+                      >
+                        Prev
+                      </Button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <Button
+                          key={p}
+                          variant={p === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => { goToPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className={`rounded-lg ${p === page ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}`}
+                        >
+                          {p}
+                        </Button>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === totalPages}
+                        onClick={() => { goToPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        className="rounded-lg"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

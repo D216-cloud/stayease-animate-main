@@ -40,7 +40,8 @@ const AddProperty = () => {
     rooms: "",
     price: "",
     amenities: [] as string[],
-    images: [] as File[],
+  images: [] as File[],
+  defaultRoomImages: [] as File[],
     defaultRoom: {
       name: '',
       roomType: '',
@@ -90,10 +91,25 @@ const AddProperty = () => {
     });
   };
 
+  const handleRoomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setFormData(prev => {
+      const next = [...prev.defaultRoomImages, ...files].slice(0, 10);
+      return { ...prev, defaultRoomImages: next };
+    });
+  };
+
   const removeSelectedImage = (index: number) => {
     setFormData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const removeSelectedRoomImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      defaultRoomImages: prev.defaultRoomImages.filter((_, i) => i !== index)
     }));
   };
 
@@ -105,6 +121,9 @@ const AddProperty = () => {
       // Convert images to data URLs
       const imagesData = await Promise.all(
         (formData.images || []).slice(0, 10).map(fileToDataUrl)
+      );
+      const defaultRoomImagesData = await Promise.all(
+        (formData.defaultRoomImages || []).slice(0, 10).map(fileToDataUrl)
       );
 
       const payload = {
@@ -121,7 +140,8 @@ const AddProperty = () => {
         rooms: Number(formData.rooms),
         price: Number(formData.price),
         amenities: formData.amenities,
-        images: imagesData,
+  images: imagesData,
+  defaultRoomImages: defaultRoomImagesData,
   defaultRoom: formData.defaultRoom,
       };
 
@@ -435,6 +455,23 @@ const AddProperty = () => {
                   onCheckedChange={(c) => handleDefaultRoomChange('breakfastIncluded', !!c)} />
                 <Label htmlFor="dr-breakfast" className="text-slate-700">Breakfast Included</Label>
               </div>
+            </div>
+
+            {/* Default Room Images */}
+            <div className="mt-6">
+              <Label className="text-slate-700 font-medium">Default Room Images (up to 10)</Label>
+              <Input type="file" accept="image/*" multiple onChange={handleRoomImageUpload} className="mt-2" />
+              {formData.defaultRoomImages.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3">
+                  {formData.defaultRoomImages.map((file, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={URL.createObjectURL(file)} className="w-full h-24 object-cover rounded" />
+                      <Button type="button" variant="destructive" size="sm" className="absolute top-1 right-1 opacity-0 group-hover:opacity-100"
+                        onClick={() => removeSelectedRoomImage(idx)}>Remove</Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </Card>
 

@@ -40,6 +40,8 @@ const createProperty = async (req, res) => {
     images = [],
   // default room information (optional)
   defaultRoom = undefined,
+  // default room images as data URLs (optional)
+  defaultRoomImages = [],
   } = req.body;
 
   if (!name || !type || !address || !city || !country || !phone || !email || rooms == null || price == null) {
@@ -55,6 +57,15 @@ const createProperty = async (req, res) => {
     if (!img) continue;
     const uploaded = await uploadToCloudinary(img, `properties/${ownerId}`);
     uploadedImages.push({ url: uploaded.secure_url, public_id: uploaded.public_id });
+  }
+
+  // Process default room images (cap 10)
+  const roomImageInputs = Array.isArray(defaultRoomImages) ? defaultRoomImages.slice(0, 10) : [];
+  const uploadedRoomImages = [];
+  for (const img of roomImageInputs) {
+    if (!img) continue;
+    const uploaded = await uploadToCloudinary(img, `properties/${ownerId}/rooms`);
+    uploadedRoomImages.push({ url: uploaded.secure_url, public_id: uploaded.public_id });
   }
 
   const property = await Property.create({
@@ -73,6 +84,7 @@ const createProperty = async (req, res) => {
     price,
     amenities,
   images: uploadedImages.slice(0, 10),
+  defaultRoomImages: uploadedRoomImages.slice(0, 10),
   ...(defaultRoom ? { defaultRoom } : {}),
   });
 
@@ -140,6 +152,29 @@ const updateProperty = async (req, res) => {
     property.images = [...(property.images || []), ...uploadedImages];
   }
 
+  // Optional: handle default room images upload if provided
+  if (Array.isArray(req.body.newDefaultRoomImages) && req.body.newDefaultRoomImages.length) {
+    const current = property.defaultRoomImages?.length || 0;
+    const remainingSlots = Math.max(0, 10 - current);
+    const toProcess = req.body.newDefaultRoomImages.slice(0, remainingSlots);
+    const uploadedImages = [];
+    for (const img of toProcess) {
+      if (!img) continue;
+      const uploaded = await uploadToCloudinary(img, `properties/${ownerId}/rooms`);
+      uploadedImages.push({ url: uploaded.secure_url, public_id: uploaded.public_id });
+    }
+    property.defaultRoomImages = [...(property.defaultRoomImages || []), ...uploadedImages];
+  }
+
+  // Optional: remove default room images by public_id
+  if (Array.isArray(req.body.removeRoomImagePublicIds) && req.body.removeRoomImagePublicIds.length) {
+    const toRemove = new Set(req.body.removeRoomImagePublicIds);
+    for (const publicId of toRemove) {
+      try { await cloudinary.uploader.destroy(publicId); } catch (e) { /* noop */ }
+    }
+    property.defaultRoomImages = (property.defaultRoomImages || []).filter(img => !toRemove.has(img.public_id));
+  }
+
   // Optional: remove images by public_id
   if (Array.isArray(req.body.removeImagePublicIds) && req.body.removeImagePublicIds.length) {
     const toRemove = new Set(req.body.removeImagePublicIds);
@@ -153,6 +188,9 @@ const updateProperty = async (req, res) => {
   // Ensure max 10 images after updates
   if (Array.isArray(property.images) && property.images.length > 10) {
     property.images = property.images.slice(0, 10);
+  }
+  if (Array.isArray(property.defaultRoomImages) && property.defaultRoomImages.length > 10) {
+    property.defaultRoomImages = property.defaultRoomImages.slice(0, 10);
   }
 
   await property.save();
@@ -185,3 +223,57 @@ const deleteProperty = async (req, res) => {
 module.exports.getPropertyById = getPropertyById;
 module.exports.updateProperty = updateProperty;
 module.exports.deleteProperty = deleteProperty;
+
+// GET /api/properties/public
+// Public listing of properties with basic search and pagination
+const listPublicProperties = async (req, res) => {
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.max(Math.min(parseInt(req.query.limit, 10) || 9, 50), 1); // default 9, cap 50
+  const search = (req.query.search || '').toString().trim();
+
+  const query = { isActive: { $ne: false } };
+
+  if (search) {
+    const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    Object.assign(query, {
+      $or: [
+        { name: regex },
+        { city: regex },
+        { country: regex },
+        { address: regex },
+        { amenities: { $elemMatch: { $regex: regex } } },
+      ],
+    });
+  }
+
+  const total = await Property.countDocuments(query);
+  const totalPages = Math.max(Math.ceil(total / limit), 1);
+  const skip = (page - 1) * limit;
+
+  const properties = await Property.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  return res.json({
+    success: true,
+    data: properties,
+    pagination: { page, limit, total, totalPages },
+  });
+};
+
+module.exports.listPublicProperties = listPublicProperties;
+
+// GET /api/properties/public/:id
+// Public single property fetch
+const getPublicPropertyById = async (req, res) => {
+  const { id } = req.params;
+  const property = await Property.findOne({ _id: id, isActive: { $ne: false } }).lean();
+  if (!property) {
+    return res.status(404).json({ success: false, message: 'Property not found' });
+  }
+  return res.json({ success: true, data: property });
+};
+
+module.exports.getPublicPropertyById = getPublicPropertyById;

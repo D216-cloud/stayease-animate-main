@@ -6,7 +6,13 @@ const {
 	getPropertyById,
 	updateProperty,
 	deleteProperty,
+	listPublicProperties,
+	getPublicPropertyById,
 } = require('../controllers/propertyController');
+
+// Public listing for customers
+router.get('/public', listPublicProperties);
+router.get('/public/:id', getPublicPropertyById);
 
 // Only hotel owners can manage properties
 router.post('/', authMiddleware, roleMiddleware('hotel_owner'), createProperty);

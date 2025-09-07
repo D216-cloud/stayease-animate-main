@@ -47,7 +47,7 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const currentPath = location.pathname;
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -96,8 +96,8 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
     navigate('/');
   };
 
-  const userEmail = userRole === 'customer' ? 'john@example.com' : 'owner@hotel.com';
-  const userName = userRole === 'customer' ? 'John Doe' : 'Hotel Owner';
+  const userEmail = user?.email || (userRole === 'customer' ? 'customer@example.com' : 'owner@example.com');
+  const userName = user ? `${user.first_name} ${user.last_name}`.trim() : (userRole === 'customer' ? 'Customer' : 'Hotel Owner');
 
   return (
     <Sidebar
