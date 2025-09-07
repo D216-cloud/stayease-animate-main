@@ -1,0 +1,53 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+
+# Coverage directories
+coverage/
+.nyc_output/
+
+# Build output
+build/
+dist/
+
+# Caches and temp
+.tmp/
+.temp/
+.cache/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Uploads/runtime storage (keep out of git)
+uploads/
+storage/
+public/uploads/
+
+# Editors and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+.eslintcache
