@@ -1,6 +1,7 @@
 const Property = require('../models/Property');
 const Booking = require('../models/Booking');
 const cloudinary = require('../config/cloudinary');
+const mongoose = require('mongoose');
 const isCloudinaryConfigured = Boolean(
   process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
 );
@@ -104,6 +105,10 @@ const getMyProperties = async (req, res) => {
 const getPropertyById = async (req, res) => {
   const ownerId = req.user.userId;
   const { id } = req.params;
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid property id' });
+  }
 
   const property = await Property.findOne({ _id: id, owner: ownerId });
   if (!property) {
@@ -259,6 +264,9 @@ const listPublicProperties = async (req, res) => {
 // Public single property fetch
 const getPublicPropertyById = async (req, res) => {
   const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid property id' });
+  }
   const property = await Property.findOne({ _id: id, isActive: { $ne: false } }).lean();
   if (!property) {
     return res.status(404).json({ success: false, message: 'Property not found' });
