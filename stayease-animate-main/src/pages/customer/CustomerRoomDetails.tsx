@@ -2,9 +2,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +29,11 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
-  Check
+  Check,
+  Sparkles,
+  MessageSquare,
+  Heart,
+  Send
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
@@ -49,6 +54,22 @@ const CustomerRoomDetails = () => {
     cvv: '',
     cardHolder: ''
   });
+
+  // Review dialog state
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewText, setReviewText] = useState<string>("");
+
+  const submitReview = () => {
+    // In a real app, this would call an API to submit the review
+    toast({
+      title: "Review Submitted!",
+      description: `Thank you for your ${reviewRating}-star review. Your feedback helps other travelers.`,
+    });
+    setReviewOpen(false);
+    setReviewRating(5);
+    setReviewText("");
+  };
 
   // Sample room data - in a real app, this would come from an API
   const roomData = {
@@ -261,10 +282,19 @@ const CustomerRoomDetails = () => {
             <Card className="p-6 bg-white/95 backdrop-blur-md border-0 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-slate-900">Guest Reviews</h2>
-                <div className="flex items-center space-x-2">
-                  <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  <span className="font-medium text-slate-900">{averageRating.toFixed(1)}</span>
-                  <span className="text-slate-600">({roomData.reviews.length} reviews)</span>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                    <span className="font-medium text-slate-900">{averageRating.toFixed(1)}</span>
+                    <span className="text-slate-600">({roomData.reviews.length} reviews)</span>
+                  </div>
+                  <Button 
+                    onClick={() => setReviewOpen(true)}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    Write Review
+                  </Button>
                 </div>
               </div>
               <div className="space-y-4">
@@ -487,6 +517,81 @@ const CustomerRoomDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Review Dialog */}
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-md border-0 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-slate-900 flex items-center">
+              <Star className="w-5 h-5 mr-2 text-amber-400" />
+              Write a Review
+            </DialogTitle>
+            <DialogDescription className="text-slate-600">
+              Share your experience at {roomData.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Rating Stars */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Rating</label>
+              <div className="flex space-x-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setReviewRating(star)}
+                    className="focus:outline-none transition-colors duration-200"
+                  >
+                    <Star
+                      className={`w-8 h-8 ${
+                        star <= reviewRating
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-slate-300 hover:text-amber-300'
+                      } transition-colors duration-200`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm text-slate-500">
+                {reviewRating === 0 ? 'Select a rating' : `${reviewRating} star${reviewRating > 1 ? 's' : ''}`}
+              </p>
+            </div>
+
+            {/* Review Text */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Your Review</label>
+              <Textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Tell others about your stay..."
+                className="min-h-[100px] resize-none border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReviewOpen(false);
+                setReviewRating(0);
+                setReviewText('');
+              }}
+              className="border-slate-200 hover:bg-slate-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitReview}
+              disabled={reviewRating === 0 || reviewText.trim() === ''}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Submit Review
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

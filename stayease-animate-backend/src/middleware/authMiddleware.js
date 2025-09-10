@@ -58,7 +58,9 @@ const roleMiddleware = (roles) => {
   };
 };
 
+// Export both names: `authenticateToken` is used across routes, keep alias for compatibility
 module.exports = {
+  authenticateToken: authMiddleware,
   authMiddleware,
   roleMiddleware
 };

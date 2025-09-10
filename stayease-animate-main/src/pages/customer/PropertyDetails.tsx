@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, MapPin, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, MapPin, Image as ImageIcon, Star } from "lucide-react";
 import { PropertiesAPI, type Property } from "@/lib/api";
 
 const PropertyDetails = () => {
@@ -73,7 +73,35 @@ const PropertyDetails = () => {
               </Card>
 
               <Card className="p-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{data.name}</h1>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{data.name}</h1>
+                    {data.averageRating && (
+                      <div className="flex items-center space-x-2 mt-2">
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-5 h-5 ${
+                                i < Math.floor(data.averageRating || 0)
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : i < (data.averageRating || 0)
+                                  ? 'fill-amber-400/50 text-amber-400'
+                                  : 'text-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-semibold text-slate-900 text-lg">{data.averageRating.toFixed(1)}</span>
+                        <span className="text-sm text-slate-600">({data.totalReviews} reviews)</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-slate-900">${data.price}</div>
+                    <div className="text-sm text-slate-500">per night</div>
+                  </div>
+                </div>
                 <p className="text-slate-600 mt-2">{data.description || "No description provided."}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {(data.amenities || []).map((a, i) => (
@@ -100,11 +128,8 @@ const PropertyDetails = () => {
 
             <div className="space-y-6">
               <Card className="p-6">
-                <div className="text-3xl font-bold">${data.price}
-                  <span className="text-sm text-slate-500 font-normal">/night</span>
-                </div>
                 <Separator className="my-4" />
-                <Button className="w-full">Book</Button>
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">Book Now</Button>
               </Card>
 
               <Card className="p-6 text-sm text-slate-700">

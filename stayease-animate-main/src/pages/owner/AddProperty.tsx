@@ -49,7 +49,9 @@ const AddProperty = () => {
       bedType: '',
       size: 0,
       smokingAllowed: false,
-      breakfastIncluded: false,
+  breakfastIncluded: false,
+  isVIP: false,
+  vipFeatures: [] as string[],
     }
   });
 
@@ -80,6 +82,18 @@ const AddProperty = () => {
         ...prev.defaultRoom,
         [field]: value,
       },
+    }));
+  };
+
+  const handleVipFeatureToggle = (feature: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      defaultRoom: {
+        ...prev.defaultRoom,
+        vipFeatures: checked
+          ? [ ...(prev.defaultRoom.vipFeatures || []), feature ]
+          : (prev.defaultRoom.vipFeatures || []).filter(f => f !== feature)
+      }
     }));
   };
 
@@ -455,7 +469,30 @@ const AddProperty = () => {
                   onCheckedChange={(c) => handleDefaultRoomChange('breakfastIncluded', !!c)} />
                 <Label htmlFor="dr-breakfast" className="text-slate-700">Breakfast Included</Label>
               </div>
+
+              {/* VIP Toggle */}
+              <div className="flex items-center space-x-2 mt-8 md:col-span-3">
+                <Checkbox id="dr-vip" checked={formData.defaultRoom.isVIP}
+                  onCheckedChange={(c) => handleDefaultRoomChange('isVIP', !!c)} />
+                <Label htmlFor="dr-vip" className="text-slate-700 font-medium">Mark as VIP Room</Label>
+              </div>
             </div>
+
+            {/* VIP Extra Features */}
+            {formData.defaultRoom.isVIP && (
+              <div className="mt-6">
+                <Label className="text-slate-700 font-medium">VIP Extra Features</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                  {['Private Lounge Access','Complimentary Champagne','Late Checkout','Concierge Service','Premium Toiletries','Airport Pickup'].map((feat) => (
+                    <div key={feat} className="flex items-center space-x-2">
+                      <Checkbox id={`vip-${feat}`} checked={(formData.defaultRoom.vipFeatures || []).includes(feat)}
+                        onCheckedChange={(c) => handleVipFeatureToggle(feat, !!c)} />
+                      <Label htmlFor={`vip-${feat}`} className="text-slate-700 text-sm">{feat}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Default Room Images */}
             <div className="mt-6">

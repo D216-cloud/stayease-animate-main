@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Property = require('../models/Property');
+const Review = require('../models/Review');
 
 // POST /api/bookings
 // Create a booking for authenticated customer
@@ -122,11 +123,43 @@ const addReview = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Cannot review a cancelled booking' });
   }
 
-  booking.rating = rating;
-  booking.review = review || '';
-  booking.reviewedAt = new Date();
-  await booking.save();
-  return res.json({ success: true, data: booking });
+  // Check if review already exists for this booking
+  const existingReview = await Review.findOne({ booking: id });
+  if (existingReview) {
+    return res.status(400).json({ success: false, message: 'Review already exists for this booking' });
+  }
+
+  // Create new review
+  const newReview = new Review({
+    customer: customerId,
+    property: booking.property,
+    booking: id,
+    rating,
+    review: review ? review.trim() : '',
+    isVerified: booking.status === 'completed'
+  });
+
+  await newReview.save();
+
+  // Update property's average rating and review count
+  const property = await Property.findById(booking.property);
+  if (property) {
+    const allReviews = await Review.find({
+      property: booking.property,
+      isVerified: true
+    });
+
+    const totalReviews = allReviews.length;
+    const averageRating = totalReviews > 0
+      ? allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+      : 0;
+
+    property.averageRating = averageRating;
+    property.totalReviews = totalReviews;
+    await property.save();
+  }
+
+  return res.json({ success: true, data: newReview });
 };
 
 // GET /api/bookings/owner/ratings
@@ -136,14 +169,73 @@ const ownerRatingsSummary = async (req, res) => {
   const props = await Property.find({ owner: ownerId }, { _id: 1 });
   const propIds = props.map(p => p._id);
   if (propIds.length === 0) return res.json({ success: true, averageRating: 0, totalReviews: 0 });
-  const bookings = await Booking.find({ property: { $in: propIds }, rating: { $ne: null } }, { rating: 1 });
-  const totalReviews = bookings.length;
-  const averageRating = totalReviews ? (bookings.reduce((sum, b) => sum + (b.rating || 0), 0) / totalReviews) : 0;
-  return res.json({ success: true, averageRating, totalReviews });
+
+  // Aggregate counts per rating to return distribution, total and average
+  const agg = await Review.aggregate([
+    { $match: { property: { $in: propIds }, isVerified: true } },
+    { $group: { _id: '$rating', count: { $sum: 1 } } }
+  ]);
+
+  const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let totalReviews = 0;
+  let weightedSum = 0;
+  agg.forEach(item => {
+    const r = Number(item._id) || 0;
+    counts[r] = item.count;
+    totalReviews += item.count;
+    weightedSum += r * item.count;
+  });
+
+  const averageRating = totalReviews > 0 ? (weightedSum / totalReviews) : 0;
+
+  return res.json({ success: true, averageRating, totalReviews, counts });
 };
 
-// GET /api/dashboard/owner/stats
-// Get dashboard stats for the authenticated hotel owner
+// GET /api/bookings/owner/reviews
+// Get recent reviews for owner's properties
+const getOwnerReviews = async (req, res) => {
+  const ownerId = req.user.userId;
+  const props = await Property.find({ owner: ownerId }, { _id: 1 });
+  const propIds = props.map(p => p._id);
+  if (propIds.length === 0) return res.json({ success: true, data: [] });
+
+  const reviews = await Review.find({
+    property: { $in: propIds },
+    isVerified: true,
+    review: { $ne: '' }
+  })
+  .sort({ createdAt: -1 })
+  .limit(10)
+  .populate('property', 'name')
+  .populate('customer', 'first_name last_name');
+
+  // Get review counts for each customer
+  const customerIds = [...new Set(reviews.map(review => review.customer._id))];
+  const reviewCounts = await Review.aggregate([
+    { $match: { customer: { $in: customerIds }, isVerified: true, review: { $ne: '' } } },
+    { $group: { _id: '$customer', count: { $sum: 1 } } }
+  ]);
+
+  const reviewCountMap = {};
+  reviewCounts.forEach(item => {
+    reviewCountMap[item._id.toString()] = item.count;
+  });
+
+  const formattedReviews = reviews.map(review => ({
+    id: review._id,
+    rating: review.rating,
+    review: review.review,
+    reviewedAt: review.createdAt,
+    propertyName: review.property.name,
+    customerName: `${review.customer.first_name} ${review.customer.last_name}`,
+    customerReviewCount: reviewCountMap[review.customer._id.toString()] || 0,
+  }));
+
+  return res.json({ success: true, data: formattedReviews });
+};
+
+// GET /api/bookings/owner/dashboard
+// Get dashboard stats for hotel owner
 const getOwnerDashboardStats = async (req, res) => {
   const ownerId = req.user.userId;
 
@@ -197,7 +289,7 @@ const getOwnerDashboardStats = async (req, res) => {
       recentBookings,
     },
   });
-};
+};      
 
 module.exports = {
   createBooking,
@@ -208,4 +300,5 @@ module.exports = {
   addReview,
   ownerRatingsSummary,
   getOwnerDashboardStats,
+  getOwnerReviews,
 };

@@ -35,9 +35,15 @@ const PropertySchema = new mongoose.Schema(
       bedType: { type: String, default: '' },
       size: { type: Number, default: 0, min: 0 }, // in sqm
       smokingAllowed: { type: Boolean, default: false },
-      breakfastIncluded: { type: Boolean, default: false },
+  breakfastIncluded: { type: Boolean, default: false },
+  // VIP options for the default room
+  isVIP: { type: Boolean, default: false },
+  vipFeatures: { type: [String], default: [] },
     },
     isActive: { type: Boolean, default: true },
+    // Rating and review statistics
+    averageRating: { type: Number, default: 0, min: 0, max: 5 },
+    totalReviews: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

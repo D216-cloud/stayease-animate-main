@@ -164,9 +164,12 @@ const Auth = () => {
           title: `${type === 'login' ? 'Welcome back!' : 'Account Created!'} 🎉`,
           description: result.message,
         });
-
-        // The useEffect will handle the redirect once user state is updated
-        // No need for manual redirect here since useEffect will take care of it
+        if (type === 'signup') {
+          // After signup, require explicit login: switch to Login tab
+          setActiveTab('login');
+          setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+        }
+        // For login, the useEffect above will redirect to the appropriate dashboard
       } else {
         toast({
           title: "Authentication Failed",

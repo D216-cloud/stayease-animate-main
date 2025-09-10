@@ -8,6 +8,7 @@ const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth');
 const propertyRoutes = require('./routes/properties');
 const bookingRoutes = require('./routes/bookings');
+const reviewRoutes = require('./routes/reviews');
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

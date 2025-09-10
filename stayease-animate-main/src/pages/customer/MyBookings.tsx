@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, MapPin, Clock, User, Phone, Mail, Star, ArrowRight, X } from "lucide-react";
+import { Calendar, MapPin, Clock, User, Phone, Mail, Star, ArrowRight, X, Sparkles, MessageSquare, Heart, Send, CheckCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -36,7 +36,9 @@ const MyBookings = () => {
     status: "pending" | "confirmed" | "cancelled" | "completed" | string;
     totalAmount: number;
     bookingRef: string;
-    image: string;
+  image: string;
+  rating?: number | null;
+  review?: string;
   };
 
   // Fetch bookings from API
@@ -70,6 +72,9 @@ const MyBookings = () => {
       || (prop.images && prop.images[0]?.url)
       || hotelImage;
     const location = [prop.city, prop.country].filter(Boolean).join(", ");
+    // Narrow booking shape to optionally include rating and review
+    const rating = (typeof (b as unknown as { rating?: unknown }).rating === 'number') ? (b as unknown as { rating: number }).rating : undefined;
+    const review = (typeof (b as unknown as { review?: unknown }).review === 'string') ? (b as unknown as { review: string }).review : undefined;
     return {
       id: b._id,
       propertyId: prop._id,
@@ -82,7 +87,9 @@ const MyBookings = () => {
       status: b.status,
       totalAmount: b.totalAmount,
       bookingRef: b._id.slice(-8).toUpperCase(),
-      image: img,
+  image: img,
+      rating,
+      review,
     };
   }, []);
 
@@ -110,7 +117,11 @@ const MyBookings = () => {
     const upcoming = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length;
     const toReview = bookings.filter(b => b.status === 'completed').length;
     const totalGuests = bookings.reduce((sum, b) => sum + (b.guests || 0), 0);
-    return { total: bookings.length, upcoming, totalGuests, toReview };
+    const ratedBookings = bookings.filter(b => b.rating !== null && b.rating !== undefined);
+    const averageRating = ratedBookings.length > 0 
+      ? ratedBookings.reduce((sum, b) => sum + (b.rating || 0), 0) / ratedBookings.length 
+      : 0;
+    return { total: bookings.length, upcoming, totalGuests, toReview, averageRating, totalReviews: ratedBookings.length };
   }, [bookings]);
 
   const handleViewDetails = (booking: UIBooking) => {
@@ -137,6 +148,49 @@ const MyBookings = () => {
   const handleContactHotel = (booking: UIBooking) => {
     setSelectedHotel({ hotel: booking.hotel, location: booking.location, image: booking.image });
     setShowContactDialog(true);
+  };
+
+  // Review dialog state
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewBookingId, setReviewBookingId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewText, setReviewText] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
+  const openReview = (b: UIBooking) => {
+    setReviewBookingId(b.id);
+    setReviewRating(b.rating || 5);
+    setReviewText(b.review || "");
+    setReviewOpen(true);
+  };
+
+  const submitReview = async () => {
+    if (!reviewBookingId) return;
+    setIsSubmitting(true);
+    try {
+      const res = await BookingsAPI.addReview(reviewBookingId, { rating: reviewRating, review: reviewText });
+      if (!res.success) throw new Error(res.message || 'Failed to submit review');
+      
+      // Show success animation
+      setReviewSubmitted(true);
+      
+      // Wait for animation then close
+      setTimeout(() => {
+        setReviewOpen(false);
+        setReviewSubmitted(false);
+        setIsSubmitting(false);
+        toast({ title: '✨ Thank you for your review!', description: 'Your feedback helps us improve.' });
+      }, 2000);
+
+      // Update bookings list
+      const list = await BookingsAPI.listMine();
+      if (list.success) setApiBookings(list.data || []);
+    } catch (e) {
+      setIsSubmitting(false);
+      const msg = e instanceof Error ? e.message : 'Failed to submit review';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    }
   };
 
   return (
@@ -248,8 +302,24 @@ const MyBookings = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">{stats.toReview}</p>
-                    <p className="text-sm text-slate-600">To Review</p>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <p className="text-3xl font-bold text-slate-900">{stats.averageRating.toFixed(1)}</p>
+                      <div className="flex items-center">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(stats.averageRating)
+                                ? 'fill-amber-400 text-amber-400'
+                                : i < stats.averageRating
+                                ? 'fill-amber-400/50 text-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600">{stats.totalReviews} Reviews</p>
                   </div>
                 </div>
               </div>
@@ -286,13 +356,23 @@ const MyBookings = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
                       <div className="lg:col-span-1">
-                        <div className="h-48 rounded-lg overflow-hidden mb-4 relative">
+                        <div 
+                          className="h-48 rounded-lg overflow-hidden mb-4 relative cursor-pointer"
+                          onClick={() => openReview(booking)}
+                        >
                           <img
                             src={booking.image}
                             alt={booking.hotel}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                          {/* Overlay rating stars on the image - empty for upcoming */}
+                          <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <Star key={i} className="w-4 h-4 text-white/80" />
+                            ))}
+                            <span className="text-xs text-white ml-2 font-medium">Rate now</span>
+                          </div>
                         </div>
                         <Badge className={`${getStatusColor(booking.status)} border-0 font-medium px-3 py-1`}>
                           {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
@@ -430,13 +510,38 @@ const MyBookings = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
                       <div className="lg:col-span-1">
-                        <div className="h-48 rounded-lg overflow-hidden mb-4 relative">
+                        <div 
+                          className="h-48 rounded-lg overflow-hidden mb-4 relative cursor-pointer"
+                          onClick={() => openReview(booking)}
+                        >
                           <img
                             src={booking.image}
                             alt={booking.hotel}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                          <div className={`absolute inset-0 bg-gradient-to-t from-black/20 to-transparent transition-all duration-300 ${booking.rating ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+                          {/* Overlay rating stars on the image */}
+                          <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20 shadow-lg">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <button
+                                key={i}
+                                className="p-0 bg-transparent border-none"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent triggering the image click
+                                  setReviewRating(i + 1);
+                                  openReview(booking);
+                                }}
+                                aria-label={`Rate ${i + 1} star`}
+                              >
+                                <Star className={`w-5 h-5 ${i < (booking.rating || 0) ? 'fill-amber-400 text-amber-400 drop-shadow-sm' : 'text-white/80'}`} />
+                              </button>
+                            ))}
+                            {typeof booking.rating === 'number' && booking.rating > 0 && (
+                              <span className="text-sm font-bold text-white ml-2 drop-shadow-sm">
+                                {booking.rating}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <Badge className={`${getStatusColor(booking.status)} border-0 font-medium px-3 py-1`}>
                           {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
@@ -450,6 +555,15 @@ const MyBookings = () => {
                             <div className="flex items-center space-x-2 text-slate-600">
                               <MapPin className="w-4 h-4" />
                               <span className="text-sm">{booking.location}</span>
+                            </div>
+                            {/* Always show rating stars */}
+                            <div className="mt-2 flex items-center gap-1">
+                              {Array.from({ length: 5 }, (_, i) => (
+                                <Star key={i} className={`w-4 h-4 ${i < (booking.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                              ))}
+                              {typeof booking.rating === 'number' && booking.rating > 0 && (
+                                <span className="text-xs text-slate-600 ml-1">{booking.rating.toFixed(1)}</span>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
@@ -549,10 +663,12 @@ const MyBookings = () => {
                             <Button variant="outline" className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-4 py-2 hover:bg-white hover:shadow-lg transition-all">
                               Download Receipt
                             </Button>
-                            <Button className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all font-medium">
-                              <Star className="w-4 h-4 mr-2" />
-                              Write Review
-                            </Button>
+                            {booking.status === 'completed' && !booking.rating && (
+                              <Button className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl" onClick={() => openReview(booking)}>
+                                <Star className="w-4 h-4 mr-2" />
+                                Rate Stay
+                              </Button>
+                            )}
                             <Button variant="outline" className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-4 py-2 hover:bg-white hover:shadow-lg transition-all">
                               Book Again
                             </Button>
@@ -567,6 +683,127 @@ const MyBookings = () => {
           </div>
         </div>
       </div>
+
+      {/* Enhanced Review Dialog */}
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent className="sm:max-w-lg border-0 shadow-2xl bg-gradient-to-br from-white via-slate-50 to-blue-50/30" aria-describedby={undefined}>
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 rounded-lg" />
+          
+          {/* Success Animation Overlay */}
+          {reviewSubmitted && (
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center z-50">
+              <div className="bg-white rounded-full p-8 shadow-2xl animate-bounce">
+                <CheckCircle className="w-16 h-16 text-green-500 animate-pulse" />
+              </div>
+              <div className="absolute inset-0 bg-green-500/10 rounded-lg animate-pulse" />
+            </div>
+          )}
+
+          <div className={`relative transition-all duration-500 ${reviewSubmitted ? 'opacity-20 blur-sm' : 'opacity-100'}`}>
+            <DialogHeader className="text-center pb-6">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <Star className="w-8 h-8 text-white fill-white" />
+              </div>
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                Rate Your Experience
+              </DialogTitle>
+              <p className="text-slate-600 mt-2">Your feedback helps us improve</p>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Rating Section */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 backdrop-blur-sm rounded-xl p-8 border-2 border-amber-200/50 shadow-lg">
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-bold text-slate-900 mb-2 flex items-center justify-center gap-2">
+                    <Sparkles className="w-6 h-6 text-amber-500" />
+                    Rate Your Stay
+                  </h3>
+                  <p className="text-slate-600">How would you rate your overall experience?</p>
+                </div>
+                
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <button
+                      key={i}
+                      className="group relative p-2 transition-all duration-300 hover:scale-125 hover:rotate-12 disabled:opacity-50"
+                      onClick={() => !isSubmitting && setReviewRating(i + 1)}
+                      disabled={isSubmitting}
+                      aria-label={`Rate ${i + 1} star`}
+                    >
+                      <Star 
+                        className={`w-8 h-8 transition-all duration-300 ${
+                          i < reviewRating 
+                            ? 'fill-amber-400 text-amber-400 drop-shadow-lg scale-110' 
+                            : 'text-slate-300 group-hover:text-amber-300 group-hover:scale-110'
+                        }`} 
+                      />
+                      {i < reviewRating && (
+                        <div className="absolute inset-0 bg-amber-400/30 rounded-full blur-lg scale-150 animate-pulse" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="text-center">
+                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full text-amber-800 font-bold text-sm shadow-md">
+                    <Star className="w-4 h-4 fill-current" />
+                    {reviewRating} out of 5 stars
+                  </span>
+                </div>
+              </div>
+
+              {/* Review Section */}
+              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-blue-500" />
+                  Share your thoughts (optional)
+                </h3>
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full border-0 bg-slate-50/50 rounded-lg p-4 text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200 resize-none disabled:opacity-50"
+                  rows={3}
+                  placeholder="Tell us about your experience..."
+                />
+              </div>
+
+              {/* Auto-submit on rating change */}
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setReviewOpen(false)}
+                  disabled={isSubmitting}
+                  className="flex-1 border-slate-300 hover:bg-slate-50 transition-all duration-200 disabled:opacity-50"
+                >
+                  Cancel
+                </Button>
+                <button 
+                  onClick={submitReview}
+                  disabled={isSubmitting}
+                  className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:scale-100 ${
+                    isSubmitting 
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 cursor-wait' 
+                      : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Submit Review
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

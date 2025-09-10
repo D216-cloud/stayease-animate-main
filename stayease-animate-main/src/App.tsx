@@ -16,7 +16,7 @@ import HotelOwnerDashboard from "./pages/HotelOwnerDashboard";
 import SearchHotels from "./pages/customer/SearchHotels";
 import MyBookings from "./pages/customer/MyBookings";
 import Wishlist from "./pages/customer/Wishlist";
-import Messages from "./pages/customer/Messages";
+import Reviews from "./pages/customer/Reviews";
 import CustomerRoomDetails from "./pages/customer/CustomerRoomDetails";
 import CustomerPropertyDetails from "./pages/customer/PropertyDetails";
 import CustomerRoom from "./pages/customer/Room";
@@ -118,9 +118,9 @@ const App = () => (
                 <Wishlist />
               </ProtectedRoute>
             } />
-            <Route path="/dashboard/customer/messages" element={
-              <ProtectedRoute requiredRole="customer">
-                <Messages />
+            <Route path="/dashboard/customer/reviews" element={
+              <ProtectedRoute requiredRole="hotel_owner">
+                <Reviews />
               </ProtectedRoute>
             } />
             

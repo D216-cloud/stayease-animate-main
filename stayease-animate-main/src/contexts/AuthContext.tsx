@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [initialized]);
 
   const getCurrentUserInternal = async (authToken: string) => {
     // Prevent multiple concurrent calls
@@ -144,11 +144,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const data = await response.json();
 
       if (data.success) {
-        setToken(data.token);
-        setUser(data.user);
-        localStorage.setItem('authToken', data.token);
-        
-        return { success: true, message: data.message };
+  // Do NOT auto-login after signup; require explicit login
+  // Keep any returned token unused on purpose
+  return { success: true, message: data.message || 'Account created. Please sign in.' };
       } else {
         return { success: false, message: data.message || 'Signup failed' };
       }
@@ -233,6 +231,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {

@@ -55,6 +55,26 @@ export default function HotelDetails() {
               <Card className="p-6 bg-white/95 backdrop-blur-md border-0 shadow-xl">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-xl font-bold text-slate-900">{property.name}</h2>
+                  {property.averageRating && (
+                    <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 rounded-lg border border-amber-200">
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(property.averageRating || 0)
+                                ? 'fill-amber-400 text-amber-400'
+                                : i < (property.averageRating || 0)
+                                ? 'fill-amber-400/50 text-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="font-semibold text-slate-900">{property.averageRating.toFixed(1)}</span>
+                      <span className="text-sm text-slate-600">({property.totalReviews} reviews)</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-slate-600 mb-4">
                   <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {property.city}, {property.country}</span>

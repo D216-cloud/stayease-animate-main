@@ -87,7 +87,11 @@ const createProperty = async (req, res) => {
     amenities,
   images: uploadedImages.slice(0, 10),
   defaultRoomImages: uploadedRoomImages.slice(0, 10),
-  ...(defaultRoom ? { defaultRoom } : {}),
+  ...(defaultRoom ? { defaultRoom: {
+    ...defaultRoom,
+    isVIP: Boolean(defaultRoom.isVIP),
+    vipFeatures: Array.isArray(defaultRoom.vipFeatures) ? defaultRoom.vipFeatures.slice(0, 20) : [],
+  } } : {}),
   });
 
   return res.status(201).json({ success: true, data: property });
@@ -253,9 +257,31 @@ const listPublicProperties = async (req, res) => {
     .limit(limit)
     .lean();
 
+  // Add rating information to each property
+  const propertiesWithRatings = await Promise.all(
+    properties.map(async (property) => {
+      const bookings = await Booking.find({ 
+        property: property._id, 
+        rating: { $ne: null },
+        review: { $ne: '' }
+      }, { rating: 1 });
+
+      const totalReviews = bookings.length;
+      const averageRating = totalReviews > 0 
+        ? bookings.reduce((sum, booking) => sum + (booking.rating || 0), 0) / totalReviews 
+        : 0;
+
+      return {
+        ...property,
+        averageRating: Number(averageRating.toFixed(1)),
+        totalReviews,
+      };
+    })
+  );
+
   return res.json({
     success: true,
-    data: properties,
+    data: propertiesWithRatings,
     pagination: { page, limit, total, totalPages },
   });
 };
@@ -271,7 +297,26 @@ const getPublicPropertyById = async (req, res) => {
   if (!property) {
     return res.status(404).json({ success: false, message: 'Property not found' });
   }
-  return res.json({ success: true, data: property });
+
+  // Add rating information
+  const bookings = await Booking.find({ 
+    property: property._id, 
+    rating: { $ne: null },
+    review: { $ne: '' }
+  }, { rating: 1 });
+
+  const totalReviews = bookings.length;
+  const averageRating = totalReviews > 0 
+    ? bookings.reduce((sum, booking) => sum + (booking.rating || 0), 0) / totalReviews 
+    : 0;
+
+  const propertyWithRating = {
+    ...property,
+    averageRating: Number(averageRating.toFixed(1)),
+    totalReviews,
+  };
+
+  return res.json({ success: true, data: propertyWithRating });
 };
 
 // GET /api/properties/mine/stats

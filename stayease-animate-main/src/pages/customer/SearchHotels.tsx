@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, MapPin, Star, Heart, Filter, Calendar, Users, Wifi, Car, Coffee, ArrowRight, X, Bed, Square } from "lucide-react";
 import hotelImage from "@/assets/hotel-construction.jpg";
 import { PropertiesAPI, type Property } from "@/lib/api";
+import { Wishlist } from "@/lib/wishlist";
 
 const SearchHotels = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const SearchHotels = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let ignore = false;
@@ -54,6 +56,14 @@ const SearchHotels = () => {
     fetchHotels();
     return () => { ignore = true; };
   }, [page, searchQuery]);
+
+  // Initialize saved map when hotels load
+  useEffect(() => {
+    if (!hotels || hotels.length === 0) return;
+    const map: Record<string, boolean> = {};
+    hotels.forEach(h => { map[h._id] = Wishlist.isSaved(h._id); });
+    setSavedMap(map);
+  }, [hotels]);
 
   const amenityIcons = {
     "Free WiFi": Wifi,
@@ -354,7 +364,32 @@ const SearchHotels = () => {
                               <div className="flex items-center justify-between mb-3">
                                 <h3 className="text-lg md:text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{hotel.name}</h3>
                                 <div className="flex items-center space-x-1">
-                                  <Heart className="w-4 h-4 md:w-5 md:h-5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer group-hover:scale-110" />
+                                  {/* Rating Display */}
+                                  {hotel.averageRating && hotel.averageRating > 0 ? (
+                                    <div className="flex items-center space-x-1 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
+                                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                                      <span className="text-sm font-medium text-amber-800">{hotel.averageRating}</span>
+                                      <span className="text-xs text-amber-600">({hotel.totalReviews})</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center space-x-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                                      <Star className="w-4 h-4 text-slate-400" />
+                                      <span className="text-xs text-slate-500">No reviews</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    aria-label={savedMap[hotel._id] ? 'Remove from wishlist' : 'Save to wishlist'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const nowSaved = Wishlist.toggle(hotel as Property);
+                                      setSavedMap((prev) => ({ ...prev, [hotel._id]: nowSaved }));
+                                    }}
+                                    className="p-1 rounded-md hover:bg-slate-100"
+                                  >
+                                    <Heart
+                                      className={`w-4 h-4 md:w-5 md:h-5 transition-colors ${savedMap[hotel._id] ? 'text-red-500 fill-red-500' : 'text-slate-400 hover:text-red-500'}`}
+                                    />
+                                  </button>
                                 </div>
                               </div>
 

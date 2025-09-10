@@ -27,13 +27,13 @@ import {
   Search,
   Calendar,
   Heart,
-  MessageSquare,
   User,
   Settings,
   LogOut,
   Building,
   BarChart3,
   Users,
+  Star,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,7 +70,6 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
     { title: "Search Hotels", url: "/dashboard/customer/search", icon: Search, iconColor: "text-green-600" },
     { title: "My Bookings", url: "/dashboard/customer/bookings", icon: Calendar, iconColor: "text-purple-600" },
     { title: "Wishlist", url: "/dashboard/customer/wishlist", icon: Heart, iconColor: "text-red-600" },
-    { title: "Messages", url: "/dashboard/customer/messages", icon: MessageSquare, iconColor: "text-orange-600" },
   ];
 
   const hotelOwnerItems = [
@@ -78,8 +77,8 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
     { title: "Properties", url: "/dashboard/hotel-owner/properties", icon: Building, iconColor: "text-green-600" },
     { title: "Bookings", url: "/dashboard/hotel-owner/bookings", icon: Calendar, iconColor: "text-purple-600" },
     { title: "Analytics", url: "/dashboard/hotel-owner/analytics", icon: BarChart3, iconColor: "text-orange-600" },
+    { title: "Reviews", url: "/dashboard/customer/reviews", icon: Star, iconColor: "text-amber-600" },
     { title: "Guests", url: "/dashboard/hotel-owner/guests", icon: Users, iconColor: "text-pink-600" },
-    { title: "Messages", url: "/dashboard/hotel-owner/messages", icon: MessageSquare, iconColor: "text-teal-600" },
   ];
 
   const items = userRole === 'customer' ? customerItems : hotelOwnerItems;

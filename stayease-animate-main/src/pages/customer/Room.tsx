@@ -5,12 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, ChevronLeft, ChevronRight, MapPin, Star, Check, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, MapPin, Star, Check, Image as ImageIcon, Heart } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { PropertiesAPI, type Property } from "@/lib/api";
+import { Wishlist } from "@/lib/wishlist";
 
 const CustomerRoom = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const CustomerRoom = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
 
   // Booking dialog state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -56,6 +58,12 @@ const CustomerRoom = () => {
     return () => { ignore = true; };
   }, [propertyId]);
 
+  useEffect(() => {
+    if (data?._id) {
+      setIsSaved(Wishlist.isSaved(data._id));
+    }
+  }, [data?._id]);
+
   const images = (data?.defaultRoomImages && data.defaultRoomImages.length > 0)
     ? data.defaultRoomImages.map(i => i.url)
     : (data?.images || []).map(i => i.url);
@@ -87,6 +95,18 @@ const CustomerRoom = () => {
             <div className="text-slate-600 flex items-center gap-2">
               <MapPin className="w-4 h-4" /> {data.city}, {data.country}
             </div>
+          )}
+          {data && (
+            <button
+              className="ml-auto p-2 rounded-md hover:bg-slate-100"
+              aria-label={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
+              onClick={() => {
+                const nowSaved = Wishlist.toggle(data);
+                setIsSaved(nowSaved);
+              }}
+            >
+              <Heart className={`w-5 h-5 ${isSaved ? 'text-red-500 fill-red-500' : 'text-slate-500'}`} />
+            </button>
           )}
         </div>
 

@@ -35,7 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PropertyWithStats, PropertiesAPI, BookingsAPI } from "@/lib/api";
+import { PropertyWithStats, PropertiesAPI, BookingsAPI, Review } from "@/lib/api";
 import { useEffect, useState } from "react";
 import globeImage from "@/assets/globe-travel-routes.jpg";
 
@@ -49,6 +49,8 @@ const HotelOwnerDashboard = () => {
     recentBookings: [],
   });
   const [loading, setLoading] = useState(true);
+  const [ratings, setRatings] = useState<{ averageRating: number; totalReviews: number }>({ averageRating: 0, totalReviews: 0 });
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -56,6 +58,24 @@ const HotelOwnerDashboard = () => {
         const response = await BookingsAPI.getOwnerDashboardStats();
         if (response.success && response.data) {
           setStats(response.data);
+        }
+        const r = await BookingsAPI.ownerRatingsSummary();
+        console.log('Hotel Dashboard - ownerRatingsSummary response:', r);
+        if (r.success && r.data) {
+          const avgRating = r.data.averageRating || 0;
+          const totalReviews = r.data.totalReviews || 0;
+          console.log('Setting ratings:', { averageRating: avgRating, totalReviews });
+          setRatings({ averageRating: avgRating, totalReviews });
+        } else {
+          console.log('No ratings data, setting defaults');
+          setRatings({ averageRating: 0, totalReviews: 0 });
+        }
+        const reviewsResponse = await BookingsAPI.getOwnerReviews();
+        if (reviewsResponse.success && reviewsResponse.data) {
+          console.log('Reviews fetched:', reviewsResponse.data);
+          setReviews(reviewsResponse.data);
+        } else {
+          console.log('No reviews response or failed:', reviewsResponse);
         }
       } catch (error) {
         console.error("Failed to fetch dashboard stats", error);
@@ -98,6 +118,10 @@ const HotelOwnerDashboard = () => {
         </div>
 
         <div className="p-6 space-y-8 relative z-10">
+          {/* Debug info */}
+          <div className="mb-2 text-sm text-slate-600">
+            Server ratings: Average {ratings.averageRating.toFixed(2)} — Total {ratings.totalReviews}
+          </div>
           {/* Hero Section */}
           <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-3xl p-12 text-center animate-fade-in relative overflow-hidden">
             {/* Floating gradient orbs */}
@@ -224,13 +248,29 @@ const HotelOwnerDashboard = () => {
                 <div className="flex items-center space-x-4">
                   <div className="relative">
                     <div className="w-12 h-12 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all group-hover:rotate-3">
-                      <BarChart3 className="w-6 h-6 text-white" />
+                      <Star className="w-6 h-6 text-white" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-slate-900">{loading ? '...' : `${stats.occupancyRate}%`}</p>
-                    <p className="text-sm text-slate-600">Occupancy Rate</p>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <p className="text-3xl font-bold text-slate-900">{ratings.averageRating.toFixed(1)}</p>
+                      <div className="flex items-center">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(ratings.averageRating)
+                                ? 'fill-amber-400 text-amber-400'
+                                : i < ratings.averageRating
+                                ? 'fill-amber-400/50 text-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600">{ratings.totalReviews} Reviews</p>
                   </div>
                 </div>
               </div>
@@ -413,6 +453,230 @@ const HotelOwnerDashboard = () => {
                 </Card>
               ))}
             </div>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="animate-scale-in">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-4xl font-bold text-slate-900 mb-2">
+                  Recent
+                  <span className="block bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
+                    Reviews
+                  </span>
+                </h2>
+                <p className="text-slate-600">See what your guests are saying</p>
+              </div>
+              <Button variant="outline" className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-6 py-3 hover:bg-white hover:shadow-lg transition-all">
+                <Star className="w-5 h-5 mr-2" />
+                View All Reviews
+              </Button>
+            </div>
+
+            {/* Overall Rating Summary */}
+            {loading ? (
+              <Card className="p-8 text-center bg-white/95 backdrop-blur-md border-0 shadow-xl mb-8">
+                <div className="animate-pulse">
+                  <div className="h-8 bg-slate-200 rounded w-1/3 mx-auto mb-4"></div>
+                  <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto mb-2"></div>
+                  <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto"></div>
+                </div>
+              </Card>
+            ) : ratings.totalReviews > 0 ? (
+              <Card className="group bg-gradient-to-r from-amber-50 to-orange-50 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative mb-8">
+                {/* Floating gradient orbs */}
+                <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-amber-500/30 to-orange-500/30 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
+                <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-gradient-to-br from-yellow-500/30 to-red-500/30 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
+                
+                <div className="p-8 relative z-10">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center space-x-4 mb-4">
+                      <div className="text-6xl font-bold text-slate-900">{ratings.averageRating.toFixed(1)}</div>
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-8 h-8 ${
+                              i < Math.floor(ratings.averageRating)
+                                ? 'fill-amber-400 text-amber-400'
+                                : i < ratings.averageRating
+                                ? 'fill-amber-400/50 text-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Overall Rating</h3>
+                    <p className="text-slate-600 mb-4">Based on {ratings.totalReviews} reviews across all your properties</p>
+                    
+                    {/* Rating Distribution */}
+                    <div className="grid grid-cols-5 gap-4 max-w-md mx-auto">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const count = reviews.filter(r => r.rating === star).length;
+                        const percentage = ratings.totalReviews > 0 ? (count / ratings.totalReviews) * 100 : 0;
+                        return (
+                          <div key={star} className="text-center">
+                            <div className="flex items-center justify-center space-x-1 mb-1">
+                              <span className="text-sm font-medium text-slate-700">{star}</span>
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-2 mb-1">
+                              <div 
+                                className="bg-gradient-to-r from-amber-400 to-orange-400 h-2 rounded-full transition-all duration-500" 
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-xs text-slate-500">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+
+            {reviews.length === 0 ? (
+              <Card className="p-8 text-center bg-white/95 backdrop-blur-md border-0 shadow-xl">
+                <div className="text-6xl mb-4">⭐</div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">No Reviews Yet</h3>
+                <p className="text-slate-600 mb-4">Your reviews will appear here once guests start leaving feedback.</p>
+                
+                {/* Sample Reviews for Demo */}
+                <div className="mt-6">
+                  <h4 className="text-lg font-semibold text-slate-900 mb-4">Sample Reviews (Demo)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">J</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">John Doe</p>
+                          <p className="text-xs text-slate-600">Grand Hotel</p>
+                        </div>
+                        <div className="flex items-center space-x-1 ml-auto">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star key={i} className={`w-4 h-4 ${i < 5 ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-slate-700 text-sm">"Amazing experience! The staff was incredibly helpful and the room was spotless."</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-slate-500">2 days ago</span>
+                        <Badge className="bg-green-100 text-green-800 text-xs">5 ⭐</Badge>
+                      </div>
+                    </Card>
+                    
+                    <Card className="p-4 bg-gradient-to-r from-green-50 to-teal-50">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-600 to-teal-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">S</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">Sarah Wilson</p>
+                          <p className="text-xs text-slate-600">Ocean View Resort</p>
+                        </div>
+                        <div className="flex items-center space-x-1 ml-auto">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star key={i} className={`w-4 h-4 ${i < 4 ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-slate-700 text-sm">"Beautiful location with stunning ocean views. Breakfast was excellent!"</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-slate-500">1 week ago</span>
+                        <Badge className="bg-green-100 text-green-800 text-xs">4 ⭐</Badge>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              </Card>
+            ) : loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <Card key={i} className="p-6 bg-white/95 backdrop-blur-md border-0 shadow-xl">
+                    <div className="animate-pulse">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <div className="w-8 h-8 bg-slate-200 rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-slate-200 rounded w-3/4 mb-1"></div>
+                          <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                        </div>
+                        <div className="flex space-x-1">
+                          {Array.from({ length: 5 }, (_, j) => (
+                            <div key={j} className="w-4 h-4 bg-slate-200 rounded"></div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2 mb-4">
+                        <div className="h-4 bg-slate-200 rounded"></div>
+                        <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                      </div>
+                      <div className="flex justify-between">
+                        <div className="h-3 bg-slate-200 rounded w-16"></div>
+                        <div className="h-5 bg-slate-200 rounded w-12"></div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {reviews.slice(0, 6).map((review) => (
+                  <Card key={review.id} className="group bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
+                    {/* Floating gradient orbs */}
+                    <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
+                    
+                    <div className="p-6 relative z-10">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-gradient-to-r from-amber-600 to-orange-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">
+                              {review.customerName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900">{review.customerName}</p>
+                            <p className="text-xs text-slate-600">{review.propertyName}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < review.rating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'text-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <p className="text-slate-700 mb-4 leading-relaxed">"{review.review}"</p>
+                      
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span>{new Date(review.reviewedAt).toLocaleDateString()}</span>
+                        <Badge 
+                          className={`px-2 py-1 text-xs ${
+                            review.rating >= 4 
+                              ? 'bg-green-100 text-green-800' 
+                              : review.rating >= 3 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {review.rating} ⭐
+                        </Badge>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Performance Chart Placeholder */}

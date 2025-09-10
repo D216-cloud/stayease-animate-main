@@ -191,7 +191,12 @@ const RoomDetails = () => {
                     </div>
                   </div>
                 </div>
-                <Badge className="bg-green-100 text-green-800">{property?.isActive ? 'Active' : 'Inactive'}</Badge>
+                <div className="flex gap-2">
+                  {property?.defaultRoom?.isVIP && (
+                    <Badge className="bg-yellow-100 text-yellow-800">VIP</Badge>
+                  )}
+                  <Badge className="bg-green-100 text-green-800">{property?.isActive ? 'Active' : 'Inactive'}</Badge>
+                </div>
               </div>
 
               <p className="text-slate-700 mb-6">{property?.description || 'No description provided.'}</p>
@@ -309,6 +314,19 @@ const RoomDetails = () => {
               </div>
             ))}
           </div>
+          {property?.defaultRoom?.isVIP && (
+            <div className="mt-4">
+              <h4 className="font-semibold text-slate-900 mb-2">VIP Extras</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(property?.defaultRoom?.vipFeatures || []).map((feat, idx) => (
+                  <div key={idx} className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-amber-500" />
+                    <span className="text-slate-700">{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Policies */}

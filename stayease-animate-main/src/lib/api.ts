@@ -60,11 +60,16 @@ export interface Property {
     bedType?: string;
     size?: number;
     smokingAllowed?: boolean;
-    breakfastIncluded?: boolean;
+  breakfastIncluded?: boolean;
+  isVIP?: boolean;
+  vipFeatures?: string[];
   };
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  // Rating information
+  averageRating?: number;
+  totalReviews?: number;
 }
 
 export interface PropertyWithStats extends Property {
@@ -175,7 +180,20 @@ export interface Booking {
   taxesAndFees: number;
   totalAmount: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  rating?: number;
+  review?: string;
+  reviewedAt?: string;
   createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  rating: number;
+  review: string;
+  reviewedAt: string;
+  propertyName: string;
+  customerName: string;
+  customerReviewCount: number;
 }
 
 export const BookingsAPI = {
@@ -222,8 +240,14 @@ export const BookingsAPI = {
     });
     return res.json();
   },
-  async ownerRatingsSummary(): Promise<ApiResponse<{ averageRating: number; totalReviews: number }>> {
+  async ownerRatingsSummary(): Promise<ApiResponse<{ averageRating: number; totalReviews: number; counts?: Record<number, number> }>> {
     const res = await fetch(`${API_BASE}/bookings/owner/ratings`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
+  async getOwnerReviews(): Promise<ApiResponse<Review[]>> {
+    const res = await fetch(`${API_BASE}/bookings/owner/reviews`, {
       headers: { ...getAuthHeaders() },
     });
     return res.json();
