@@ -292,3 +292,25 @@ export const fileToDataUrl = (file: File) => new Promise<string>((resolve, rejec
   reader.onerror = reject;
   reader.readAsDataURL(file);
 });
+
+// Reviews (public/property-specific)
+export interface PropertyReview {
+  id: string;
+  rating: number;
+  review: string;
+  createdAt: string;
+  customerName: string;
+  bookingDates?: { checkIn?: string; checkOut?: string };
+  helpful?: number;
+  reported?: boolean;
+}
+
+export const ReviewsAPI = {
+  async getByProperty(propertyId: string, opts: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<PropertyReview[]>> {
+    const url = new URL(`${API_BASE}/reviews/property/${propertyId}`);
+    if (opts.page) url.searchParams.set('page', String(opts.page));
+    if (opts.limit) url.searchParams.set('limit', String(opts.limit));
+    const res = await fetch(url.toString());
+    return res.json();
+  },
+};

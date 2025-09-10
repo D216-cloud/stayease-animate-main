@@ -175,7 +175,31 @@ const CustomerRoom = () => {
               </Card>
 
               <Card className="p-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{data.name}</h1>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{data.name}</h1>
+                    {typeof data.averageRating === 'number' && data.totalReviews !== undefined && (
+                      <div className="flex items-center space-x-2 mt-2">
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-5 h-5 ${
+                                i < Math.floor(data.averageRating || 0)
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : i < (data.averageRating || 0)
+                                  ? 'fill-amber-400/50 text-amber-400'
+                                  : 'text-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-semibold text-slate-900 text-lg">{(data.averageRating || 0).toFixed(1)}</span>
+                        <span className="text-sm text-slate-600">({data.totalReviews || 0} reviews)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <p className="text-slate-600 mt-2">{data.description || "No description provided."}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {(data.amenities || []).map((a, i) => (

@@ -124,9 +124,9 @@ const Landing = () => {
               </div>
               <div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  StayEase
+                  LuxStay
                 </span>
-                <div className="text-xs text-slate-500 font-medium">AI-Powered Travel</div>
+                <div className="text-xs text-slate-500 font-medium">Premium Stays</div>
               </div>
             </div>
             
@@ -358,7 +358,7 @@ const Landing = () => {
               <h2 className="text-5xl md:text-6xl font-bold text-slate-900 mb-8">
                 Why Travelers Choose
                 <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  StayEase
+                  LuxStay
                 </span>
               </h2>
               <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
@@ -541,7 +541,7 @@ const Landing = () => {
           <div className="border-t border-slate-800 pt-8">
             <div className="flex flex-col md:flex-row items-center justify-between">
               <p className="text-slate-400 text-center md:text-left mb-4 md:mb-0">
-                &copy; 2025 StayEase. All rights reserved. Made with ❤️ for travelers worldwide.
+                &copy; 2025 LuxStay. All rights reserved. Made with ❤️ for travelers worldwide.
               </p>
               <div className="flex items-center space-x-6 text-sm text-slate-400">
                 <span>🌍 Available in 50+ languages</span>

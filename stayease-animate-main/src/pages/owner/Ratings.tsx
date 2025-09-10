@@ -77,7 +77,7 @@ const Ratings = () => {
       try {
         setLoading(true);
 
-        // Fetch ratings summary
+        // Always show ALL ratings and reviews across properties
         const ratingsResponse = await BookingsAPI.allRatingsSummary();
         if (ratingsResponse.success && ratingsResponse.data) {
           setRatingsData({
@@ -87,7 +87,6 @@ const Ratings = () => {
           });
         }
 
-        // Fetch reviews
         const reviewsResponse = await BookingsAPI.getAllReviews();
         if (reviewsResponse.success && reviewsResponse.data) {
           setReviews(reviewsResponse.data);
@@ -361,7 +360,7 @@ const Ratings = () => {
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-2xl group-hover:scale-125 transition-all duration-700" />
             <div className="p-8 relative z-10">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-slate-900">All Ratings ({reviews.length})</h3>
+                <h3 className="text-2xl font-bold text-slate-900">All Ratings ({ratingsData.totalReviews || reviews.length})</h3>
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                     {reviews.filter(r => r.isVerified).length} Verified

@@ -17,7 +17,6 @@ const getPropertyReviews = async (req, res) => {
     const reviews = await Review.find({
       property: propertyId,
       isVerified: true,
-      review: { $ne: '' }
     })
     .sort({ createdAt: -1 })
     .limit(limit * 1)
@@ -28,7 +27,6 @@ const getPropertyReviews = async (req, res) => {
     const total = await Review.countDocuments({
       property: propertyId,
       isVerified: true,
-      review: { $ne: '' }
     });
 
     const formattedReviews = reviews.map(review => ({

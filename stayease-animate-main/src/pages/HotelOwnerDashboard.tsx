@@ -5,15 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
-  MapPin, 
   Star, 
-  Heart, 
   Calendar, 
   Users, 
   Sparkles, 
   Zap, 
   Shield, 
-  ArrowRight,
   Building,
   BarChart3,
   Eye,
@@ -21,6 +18,7 @@ import {
   Trash2,
   MoreHorizontal
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -50,6 +48,7 @@ interface Review {
 }
 
 const HotelOwnerDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalProperties: 0,
     activeBookings: 0,
@@ -132,9 +131,7 @@ const HotelOwnerDashboard = () => {
 
         <div className="p-6 space-y-8 relative z-10">
           {/* Debug info */}
-          <div className="mb-2 text-sm text-slate-600">
-            Server ratings: Average {ratings.averageRating.toFixed(2)} — Total {ratings.totalReviews}
-          </div>
+          {/* Luxury hero header */}
           {/* Hero Section */}
           <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-3xl p-12 text-center animate-fade-in relative overflow-hidden">
             {/* Floating gradient orbs */}
@@ -162,31 +159,17 @@ const HotelOwnerDashboard = () => {
                 Find, book, and enjoy your next trip with AI-powered recommendations and personalized experiences
               </p>
 
-              {/* Search Bar */}
-              <div className="relative max-w-lg mx-auto mb-8">
-                <Search className="absolute left-4 top-4 h-6 w-6 text-slate-400" />
-                <Input
-                  placeholder="Search hotels, destinations, or dates..."
-                  className="pl-12 pr-6 py-4 text-lg bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-2xl shadow-lg focus:shadow-xl transition-all"
-                />
-              </div>
-
-              {/* Quick Actions */}
-              <div className="flex flex-wrap gap-4 justify-center">
-                {[
-                  { icon: Sparkles, text: "AI Recommendations", color: "from-blue-600 to-purple-600" },
-                  { icon: Zap, text: "Instant Booking", color: "from-purple-600 to-pink-600" },
-                  { icon: Shield, text: "Secure Payments", color: "from-emerald-600 to-teal-600" }
-                ].map((action, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-2xl px-6 py-3 hover:bg-white hover:shadow-lg transition-all group"
-                  >
-                    <action.icon className={`w-5 h-5 mr-2 bg-gradient-to-r ${action.color} bg-clip-text text-transparent`} />
-                    <span className="text-slate-700 group-hover:text-slate-900 transition-colors">{action.text}</span>
-                  </Button>
-                ))}
+              {/* Primary navigation buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                <Button onClick={() => navigate('/dashboard/hotel-owner/properties')} className="h-16 text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl shadow-lg hover:shadow-xl">
+                  <Building className="w-5 h-5 mr-3" /> Manage Properties
+                </Button>
+                <Button onClick={() => navigate('/dashboard/hotel-owner/bookings')} className="h-16 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl shadow-lg hover:shadow-xl">
+                  <Calendar className="w-5 h-5 mr-3" /> View Bookings
+                </Button>
+                <Button onClick={() => navigate('/dashboard/hotel-owner/ratings')} className="h-16 text-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-2xl shadow-lg hover:shadow-xl">
+                  <Star className="w-5 h-5 mr-3" /> Ratings & Reviews
+                </Button>
               </div>
             </div>
           </div>
@@ -692,29 +675,7 @@ const HotelOwnerDashboard = () => {
             )}
           </div>
 
-          {/* Performance Chart Placeholder */}
-          <Card className="group bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
-            {/* Floating gradient orbs */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-2xl group-hover:scale-125 transition-all duration-700" />
-            
-            <div className="p-8 relative z-10">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-slate-900">Revenue Overview</h3>
-                <Button variant="outline" className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-4 py-2 hover:bg-white hover:shadow-lg transition-all">
-                  View Report
-                </Button>
-              </div>
-              
-              {/* Placeholder for Chart */}
-              <div className="h-64 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-6xl mb-4 animate-pulse">📊</div>
-                  <p className="text-slate-600">Revenue chart will be displayed here</p>
-                  <p className="text-sm text-slate-500">Last 6 months performance</p>
-                </div>
-              </div>
-            </div>
-          </Card>
+          {/* Removed revenue chart per request */}
         </div>
       </div>
     </DashboardLayout>

@@ -262,8 +262,7 @@ const listPublicProperties = async (req, res) => {
     properties.map(async (property) => {
       const bookings = await Booking.find({ 
         property: property._id, 
-        rating: { $ne: null },
-        review: { $ne: '' }
+        rating: { $ne: null }
       }, { rating: 1 });
 
       const totalReviews = bookings.length;
@@ -301,8 +300,7 @@ const getPublicPropertyById = async (req, res) => {
   // Add rating information
   const bookings = await Booking.find({ 
     property: property._id, 
-    rating: { $ne: null },
-    review: { $ne: '' }
+    rating: { $ne: null }
   }, { rating: 1 });
 
   const totalReviews = bookings.length;

@@ -38,6 +38,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import luxLogo from "@/assets/luxstay-logo.svg";
 
 interface AppSidebarProps {
   userRole: 'customer' | 'hotel-owner';
@@ -107,16 +108,14 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
       <SidebarHeader className="p-4 border-b border-slate-100">
         <div className="flex items-center space-x-3">
           <div className="relative group">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all">
-              <Building className="w-5 h-5 text-white" />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-xl blur opacity-0 group-hover:opacity-30 transition-all" />
+            <img src={luxLogo} alt="LuxStay" className="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-xl transition-all" />
+            <div className="absolute inset-0 rounded-xl blur opacity-0 group-hover:opacity-30 transition-all" />
           </div>
           <div>
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              StayEase
+              LuxStay
             </span>
-            <div className="text-xs text-slate-500 font-medium">AI-Powered Travel</div>
+            <div className="text-xs text-slate-500 font-medium">Premium Stays</div>
           </div>
         </div>
       </SidebarHeader>
