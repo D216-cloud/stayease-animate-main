@@ -360,7 +360,10 @@ const Ratings = () => {
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-2xl group-hover:scale-125 transition-all duration-700" />
             <div className="p-8 relative z-10">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-slate-900">All Ratings ({ratingsData.totalReviews || reviews.length})</h3>
+                <div>
+                  <h3 className="text-3xl font-bold text-slate-900">All Guest Reviews & Ratings</h3>
+                  <p className="text-slate-600 mt-1">Complete overview of all reviews ({ratingsData.totalReviews || reviews.length} total)</p>
+                </div>
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                     {reviews.filter(r => r.isVerified).length} Verified
@@ -369,7 +372,7 @@ const Ratings = () => {
                     {reviews.filter(r => r.helpful > 0).length} Helpful
                   </Badge>
                   <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                    {new Set(reviews.map(r => r.customerEmail)).size} Unique Users
+                    {new Set(reviews.map(r => r.customerEmail)).size} Unique Guests
                   </Badge>
                 </div>
               </div>

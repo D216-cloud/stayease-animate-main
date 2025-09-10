@@ -6,40 +6,93 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+bun-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+
+# Runtime and cache
+.tmp/
+.temp/
+.cache/
+.vite/
+.turbo/
+.parcel-cache/
+.npm/
+.yarn/
 *.local
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
 
 # Environment files
 .env
 .env.*
 !.env.example
+.envrc
 
-# Cache and temp
-.cache/
-.vite/
-*.tsbuildinfo
-/.turbo
-/.parcel-cache
-/.npm
-/.yarn
-
-# Tooling output
+# Testing
 coverage/
-.eslintcache
+.nyc_output/
+test-results/
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+
+# Storybook
+storybook-static/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# OS files
-Thumbs.db
+# TypeScript
+*.d.ts.map
+
+# Vite specific
+vite.config.*.timestamp-*
+
+# Bundle analysis
+.bundle-analyzer/
+stats.html
+
+# PWA
+**/sw.js
+**/workbox-*.js
+
+# Miscellaneous
+*.zip
+*.tar.gz
+*.rar
+.vercel/
+.netlify/

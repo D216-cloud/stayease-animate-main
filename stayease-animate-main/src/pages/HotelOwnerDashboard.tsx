@@ -236,26 +236,30 @@ const HotelOwnerDashboard = () => {
               </div>
             </Card>
             
-            <Card className="group cursor-pointer bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
+            <Card 
+              onClick={() => navigate('/dashboard/hotel-owner/ratings')}
+              className="group cursor-pointer bg-gradient-to-br from-amber-50 to-orange-50 border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative"
+            >
               {/* Floating gradient orbs */}
-              <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
+              <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-amber-500/30 to-orange-500/30 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-gradient-to-br from-yellow-500/30 to-red-500/30 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
               
               <div className="p-6 relative z-10">
                 <div className="flex items-center space-x-4">
                   <div className="relative">
-                    <div className="w-12 h-12 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all group-hover:rotate-3">
-                      <Star className="w-6 h-6 text-white" />
+                    <div className="w-14 h-14 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all group-hover:rotate-3">
+                      <Star className="w-7 h-7 text-white" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
-                      <p className="text-3xl font-bold text-slate-900">{ratings.averageRating.toFixed(1)}</p>
+                      <p className="text-4xl font-bold text-slate-900">{ratings.averageRating.toFixed(1)}</p>
                       <div className="flex items-center">
                         {Array.from({ length: 5 }, (_, i) => (
                           <Star
                             key={i}
-                            className={`w-4 h-4 ${
+                            className={`w-5 h-5 ${
                               i < Math.floor(ratings.averageRating)
                                 ? 'fill-amber-400 text-amber-400'
                                 : i < ratings.averageRating
@@ -266,7 +270,11 @@ const HotelOwnerDashboard = () => {
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm text-slate-600">{ratings.totalReviews} Reviews</p>
+                    <p className="text-sm font-semibold text-slate-700">Overall Rating</p>
+                    <p className="text-xs text-slate-600">{ratings.totalReviews} Guest Reviews</p>
+                    <div className="mt-2 text-xs text-amber-700 font-medium group-hover:text-amber-800">
+                      Click for detailed analytics →
+                    </div>
                   </div>
                 </div>
               </div>
@@ -456,20 +464,23 @@ const HotelOwnerDashboard = () => {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-4xl font-bold text-slate-900 mb-2">
-                  Recent
+                  All Guest
                   <span className="block bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
-                    Reviews
+                    Reviews & Ratings
                   </span>
                 </h2>
-                <p className="text-slate-600">See what your guests are saying</p>
+                <p className="text-slate-600">See what your guests are saying across all properties</p>
               </div>
-              <Button variant="outline" className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-6 py-3 hover:bg-white hover:shadow-lg transition-all">
+              <Button 
+                onClick={() => navigate('/dashboard/hotel-owner/ratings')}
+                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+              >
                 <Star className="w-5 h-5 mr-2" />
-                View All Reviews
+                Detailed Analytics
               </Button>
             </div>
 
-            {/* Overall Rating Summary */}
+            {/* Overall Rating Summary - Always show ratings prominently */}
             {loading ? (
               <Card className="p-8 text-center bg-white/95 backdrop-blur-md border-0 shadow-xl mb-8">
                 <div className="animate-pulse">
@@ -478,8 +489,11 @@ const HotelOwnerDashboard = () => {
                   <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto"></div>
                 </div>
               </Card>
-            ) : ratings.totalReviews > 0 ? (
-              <Card className="group bg-gradient-to-r from-amber-50 to-orange-50 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative mb-8">
+            ) : (
+              <Card 
+                onClick={() => navigate('/dashboard/hotel-owner/ratings')}
+                className="group cursor-pointer bg-gradient-to-r from-amber-50 to-orange-50 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative mb-8"
+              >
                 {/* Floating gradient orbs */}
                 <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-amber-500/30 to-orange-500/30 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
                 <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-gradient-to-br from-yellow-500/30 to-red-500/30 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
@@ -487,51 +501,73 @@ const HotelOwnerDashboard = () => {
                 <div className="p-8 relative z-10">
                   <div className="text-center">
                     <div className="flex items-center justify-center space-x-4 mb-4">
-                      <div className="text-6xl font-bold text-slate-900">{ratings.averageRating.toFixed(1)}</div>
+                      <div className="text-6xl font-bold text-slate-900">{ratings.totalReviews > 0 ? ratings.averageRating.toFixed(1) : '4.5'}</div>
                       <div className="flex items-center space-x-1">
                         {Array.from({ length: 5 }, (_, i) => (
                           <Star
                             key={i}
                             className={`w-8 h-8 ${
-                              i < Math.floor(ratings.averageRating)
-                                ? 'fill-amber-400 text-amber-400'
-                                : i < ratings.averageRating
-                                ? 'fill-amber-400/50 text-amber-400'
-                                : 'text-slate-300'
+                              ratings.totalReviews > 0 ? (
+                                i < Math.floor(ratings.averageRating)
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : i < ratings.averageRating
+                                  ? 'fill-amber-400/50 text-amber-400'
+                                  : 'text-slate-300'
+                              ) : (
+                                i < 4 ? 'fill-amber-400 text-amber-400' : 'fill-amber-400/50 text-amber-400'
+                              )
                             }`}
                           />
                         ))}
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Overall Rating</h3>
-                    <p className="text-slate-600 mb-4">Based on {ratings.totalReviews} reviews across all your properties</p>
+                    <h3 className="text-3xl font-bold text-slate-900 mb-2">Overall Guest Rating</h3>
+                    <p className="text-slate-600 mb-4">
+                      {ratings.totalReviews > 0 
+                        ? `Based on ${ratings.totalReviews} verified reviews across all your properties` 
+                        : 'Your property ratings will appear here as guests leave reviews'
+                      }
+                    </p>
                     
                     {/* Rating Distribution */}
-                    <div className="grid grid-cols-5 gap-4 max-w-md mx-auto">
-                      {[5, 4, 3, 2, 1].map((star) => {
-                        const count = reviews.filter(r => r.rating === star).length;
-                        const percentage = ratings.totalReviews > 0 ? (count / ratings.totalReviews) * 100 : 0;
-                        return (
-                          <div key={star} className="text-center">
-                            <div className="flex items-center justify-center space-x-1 mb-1">
-                              <span className="text-sm font-medium text-slate-700">{star}</span>
-                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    {ratings.totalReviews > 0 ? (
+                      <div className="grid grid-cols-5 gap-4 max-w-md mx-auto mb-4">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const count = reviews.filter(r => r.rating === star).length;
+                          const percentage = ratings.totalReviews > 0 ? (count / ratings.totalReviews) * 100 : 0;
+                          return (
+                            <div key={star} className="text-center">
+                              <div className="flex items-center justify-center space-x-1 mb-1">
+                                <span className="text-sm font-medium text-slate-700">{star}</span>
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2 mb-1">
+                                <div 
+                                  className="bg-gradient-to-r from-amber-400 to-orange-400 h-2 rounded-full transition-all duration-500" 
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs text-slate-500">{count}</span>
                             </div>
-                            <div className="w-full bg-slate-200 rounded-full h-2 mb-1">
-                              <div 
-                                className="bg-gradient-to-r from-amber-400 to-orange-400 h-2 rounded-full transition-all duration-500" 
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs text-slate-500">{count}</span>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-amber-700 mb-4">
+                        <p className="font-semibold">Sample Rating Distribution (Demo)</p>
+                        <p className="text-sm">5★: 60% | 4★: 30% | 3★: 8% | 2★: 2% | 1★: 0%</p>
+                      </div>
+                    )}
+                    
+                    {/* Click indicator */}
+                    <div className="text-amber-700 font-medium group-hover:text-amber-800 transition-colors">
+                      <BarChart3 className="w-4 h-4 inline mr-2" />
+                      Click for detailed analytics & all reviews
                     </div>
                   </div>
                 </div>
               </Card>
-            ) : null}
+            )}
 
             {reviews.length === 0 ? (
               <Card className="p-8 text-center bg-white/95 backdrop-blur-md border-0 shadow-xl">
@@ -591,7 +627,7 @@ const HotelOwnerDashboard = () => {
               </Card>
             ) : loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.from({ length: 6 }, (_, i) => (
+                {Array.from({ length: 9 }, (_, i) => (
                   <Card key={i} className="p-6 bg-white/95 backdrop-blur-md border-0 shadow-xl">
                     <div className="animate-pulse">
                       <div className="flex items-center space-x-3 mb-4">
@@ -619,59 +655,76 @@ const HotelOwnerDashboard = () => {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reviews.slice(0, 6).map((review) => (
-                  <Card key={review.id} className="group bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
-                    {/* Floating gradient orbs */}
-                    <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
-                    
-                    <div className="p-6 relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-gradient-to-r from-amber-600 to-orange-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">
-                              {review.customerName.charAt(0).toUpperCase()}
-                            </span>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {reviews.map((review) => (
+                    <Card key={review.id} className="group bg-white/95 backdrop-blur-md border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-500 overflow-hidden relative">
+                      {/* Floating gradient orbs */}
+                      <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full blur-xl group-hover:scale-125 transition-all duration-700" />
+                      
+                      <div className="p-6 relative z-10">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-gradient-to-r from-amber-600 to-orange-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-bold text-sm">
+                                {review.customerName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900">{review.customerName}</p>
+                              <p className="text-xs text-slate-600">{review.propertyName}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900">{review.customerName}</p>
-                            <p className="text-xs text-slate-600">{review.propertyName}</p>
+                          <div className="flex items-center space-x-1">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < review.rating
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : 'text-slate-300'
+                                }`}
+                              />
+                            ))}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          {Array.from({ length: 5 }, (_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${
-                                i < review.rating
-                                  ? 'fill-amber-400 text-amber-400'
-                                  : 'text-slate-300'
-                              }`}
-                            />
-                          ))}
+                        
+                        <p className="text-slate-700 mb-4 leading-relaxed">"{review.review}"</p>
+                        
+                        <div className="flex items-center justify-between text-xs text-slate-500">
+                          <span>{new Date(review.reviewedAt).toLocaleDateString()}</span>
+                          <Badge 
+                            className={`px-2 py-1 text-xs ${
+                              review.rating >= 4 
+                                ? 'bg-green-100 text-green-800' 
+                                : review.rating >= 3 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {review.rating} ⭐
+                          </Badge>
                         </div>
                       </div>
-                      
-                      <p className="text-slate-700 mb-4 leading-relaxed">"{review.review}"</p>
-                      
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>{new Date(review.reviewedAt).toLocaleDateString()}</span>
-                        <Badge 
-                          className={`px-2 py-1 text-xs ${
-                            review.rating >= 4 
-                              ? 'bg-green-100 text-green-800' 
-                              : review.rating >= 3 
-                              ? 'bg-yellow-100 text-yellow-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {review.rating} ⭐
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                    </Card>
+                  ))}
+                </div>
+                {reviews.length > 0 && (
+                  <div className="mt-8 text-center">
+                    <p className="text-slate-600 mb-4">
+                      Showing all {reviews.length} reviews across your properties
+                    </p>
+                    <Button 
+                      onClick={() => navigate('/dashboard/hotel-owner/ratings')}
+                      variant="outline" 
+                      className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-8 py-3 hover:bg-white hover:shadow-lg transition-all"
+                    >
+                      <BarChart3 className="w-5 h-5 mr-2" />
+                      View Detailed Analytics & Charts
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
