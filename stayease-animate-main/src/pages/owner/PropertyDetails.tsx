@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { PropertiesAPI, type Property } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -70,6 +71,9 @@ const PropertyDetails = () => {
                 <div><span className="font-medium">Status:</span> {property.isActive ? 'Active' : 'Inactive'}</div>
                 <div className="mt-4">
                   <div className="font-semibold">Default Room</div>
+                  {property.defaultRoom?.isVIP && (
+                    <Badge className="ml-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white">VIP</Badge>
+                  )}
                   <div className="text-sm text-slate-700">Name: {property.defaultRoom?.name || '—'}</div>
                   <div className="text-sm text-slate-700">Type: {property.defaultRoom?.roomType || '—'}</div>
                   <div className="text-sm text-slate-700">Capacity: {property.defaultRoom?.capacity ?? '—'}</div>

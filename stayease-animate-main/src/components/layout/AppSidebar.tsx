@@ -77,7 +77,7 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
     { title: "Properties", url: "/dashboard/hotel-owner/properties", icon: Building, iconColor: "text-green-600" },
     { title: "Bookings", url: "/dashboard/hotel-owner/bookings", icon: Calendar, iconColor: "text-purple-600" },
     { title: "Analytics", url: "/dashboard/hotel-owner/analytics", icon: BarChart3, iconColor: "text-orange-600" },
-    { title: "Reviews", url: "/dashboard/customer/reviews", icon: Star, iconColor: "text-amber-600" },
+    { title: "Ratings", url: "/dashboard/hotel-owner/ratings", icon: Star, iconColor: "text-amber-600" },
     { title: "Guests", url: "/dashboard/hotel-owner/guests", icon: Users, iconColor: "text-pink-600" },
   ];
 

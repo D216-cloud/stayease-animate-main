@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, MapPin, Clock, User, Phone, Mail, Star, ArrowRight, X, Sparkles, MessageSquare, Heart, Send, CheckCircle } from "lucide-react";
+import { Calendar, MapPin, Clock, User, Phone, Mail, Star, ArrowRight, X, Sparkles, MessageSquare, Heart, Send, CheckCircle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -158,6 +158,9 @@ const MyBookings = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
+  // Get current booking for review dialog
+  const currentBooking = bookings.find(b => b.id === reviewBookingId);
+
   const openReview = (b: UIBooking) => {
     setReviewBookingId(b.id);
     setReviewRating(b.rating || 5);
@@ -169,7 +172,10 @@ const MyBookings = () => {
     if (!reviewBookingId) return;
     setIsSubmitting(true);
     try {
+      console.log('Submitting review:', { reviewBookingId, reviewRating, reviewText });
       const res = await BookingsAPI.addReview(reviewBookingId, { rating: reviewRating, review: reviewText });
+      console.log('Review submission response:', res);
+      
       if (!res.success) throw new Error(res.message || 'Failed to submit review');
       
       // Show success animation
@@ -187,6 +193,7 @@ const MyBookings = () => {
       const list = await BookingsAPI.listMine();
       if (list.success) setApiBookings(list.data || []);
     } catch (e) {
+      console.error('Review submission error:', e);
       setIsSubmitting(false);
       const msg = e instanceof Error ? e.message : 'Failed to submit review';
       toast({ title: 'Error', description: msg, variant: 'destructive' });
@@ -663,11 +670,27 @@ const MyBookings = () => {
                             <Button variant="outline" className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-4 py-2 hover:bg-white hover:shadow-lg transition-all">
                               Download Receipt
                             </Button>
-                            {booking.status === 'completed' && !booking.rating && (
-                              <Button className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl" onClick={() => openReview(booking)}>
-                                <Star className="w-4 h-4 mr-2" />
-                                Rate Stay
-                              </Button>
+                            {booking.status === 'completed' && (
+                              <>
+                                {booking.rating ? (
+                                  <Button 
+                                    variant="outline" 
+                                    className="bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl" 
+                                    onClick={() => openReview(booking)}
+                                  >
+                                    <Star className="w-4 h-4 mr-2 fill-amber-400" />
+                                    View Review ({booking.rating}⭐)
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl" 
+                                    onClick={() => openReview(booking)}
+                                  >
+                                    <Star className="w-4 h-4 mr-2" />
+                                    Rate Stay
+                                  </Button>
+                                )}
+                              </>
                             )}
                             <Button variant="outline" className="bg-white/90 backdrop-blur-sm border-slate-200/50 rounded-xl px-4 py-2 hover:bg-white hover:shadow-lg transition-all">
                               Book Again
@@ -705,12 +728,44 @@ const MyBookings = () => {
                 <Star className="w-8 h-8 text-white fill-white" />
               </div>
               <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                Rate Your Experience
+                {currentBooking?.rating ? 'Update Your Review' : 'Rate Your Experience'}
               </DialogTitle>
-              <p className="text-slate-600 mt-2">Your feedback helps us improve</p>
+              <p className="text-slate-600 mt-2">
+                {currentBooking?.rating ? 'Update your feedback for this stay' : 'Your feedback helps us improve'}
+              </p>
             </DialogHeader>
 
             <div className="space-y-6">
+              {/* Existing Rating Message */}
+              {currentBooking?.rating && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 backdrop-blur-sm rounded-xl p-4 border-2 border-green-200/50 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-green-800 font-semibold">Review Already Submitted</p>
+                      <p className="text-green-600 text-sm">You rated this stay {currentBooking.rating} out of 5 stars</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* No Changes Message */}
+              {currentBooking?.rating && reviewRating === currentBooking.rating && reviewText.trim() === (currentBooking.review || "") && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 backdrop-blur-sm rounded-xl p-4 border-2 border-amber-200/50 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center">
+                      <Info className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-amber-800 font-semibold">No Changes Detected</p>
+                      <p className="text-amber-600 text-sm">Make changes to your rating or review to update</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Rating Section */}
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 backdrop-blur-sm rounded-xl p-8 border-2 border-amber-200/50 shadow-lg">
                 <div className="text-center mb-6">
@@ -780,7 +835,7 @@ const MyBookings = () => {
                 </Button>
                 <button 
                   onClick={submitReview}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !reviewRating || !reviewText.trim() || (currentBooking?.rating && reviewRating === currentBooking.rating && reviewText.trim() === (currentBooking.review || ""))}
                   className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:scale-100 ${
                     isSubmitting 
                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 cursor-wait' 
@@ -790,12 +845,12 @@ const MyBookings = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Submitting...
+                      {currentBooking?.rating ? 'Updating...' : 'Submitting...'}
                     </>
                   ) : (
                     <>
                       <Send className="w-5 h-5" />
-                      Submit Review
+                      {currentBooking?.rating ? 'Update Review' : 'Submit Review'}
                     </>
                   )}
                 </button>

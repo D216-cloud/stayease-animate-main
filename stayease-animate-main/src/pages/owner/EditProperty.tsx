@@ -10,6 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { PropertiesAPI, fileToDataUrl, type Property } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Building,
+  Upload,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Star,
+  ArrowLeft,
+  Save,
+  Edit
+} from "lucide-react";
 
 const EditProperty = () => {
   const { propertyId } = useParams();
@@ -69,6 +81,17 @@ const EditProperty = () => {
     setRemoveImageIds(prev => [...prev, public_id]);
   }
 
+  const handleVipFeatureToggle = (feature: string, checked: boolean) => {
+    if (!property) return;
+    const currentFeatures = property.defaultRoom?.vipFeatures || [];
+    updateField('defaultRoom', {
+      ...property.defaultRoom,
+      vipFeatures: checked
+        ? [...currentFeatures, feature]
+        : currentFeatures.filter(f => f !== feature)
+    });
+  };
+
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!propertyId || !property) return;
@@ -88,7 +111,7 @@ const EditProperty = () => {
         email: property.email,
         website: property.website,
         rooms: property.rooms,
-        price: property.price,
+        price: property.price + (property.defaultRoom?.isVIP ? 500 : 0),
         amenities: property.amenities,
         newImages: newImagesData,
         removeImagePublicIds: removeIds,
@@ -116,48 +139,130 @@ const EditProperty = () => {
 
   return (
     <DashboardLayout userRole="hotel-owner">
-      <div className="p-6 max-w-4xl mx-auto">
-        <form onSubmit={onSave} className="space-y-6">
-          <Card className="p-4 space-y-4">
-            <div>
-              <Label>Name</Label>
-              <Input value={property.name} onChange={e => updateField('name', e.target.value)} />
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-40 right-20 w-96 h-96 bg-gradient-to-r from-purple-400/15 to-pink-400/15 rounded-full blur-3xl animate-float-delayed"></div>
+        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-gradient-to-r from-pink-400/10 to-blue-400/10 rounded-full blur-3xl animate-float"></div>
+      </div>
+
+      <div className="relative p-6 max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center space-x-4 mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard/hotel-owner/properties')}
+            className="text-slate-700 hover:bg-slate-100"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Properties
+          </Button>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+              <Edit className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <Label>Type</Label>
-              <Select value={property.type} onValueChange={v => updateField('type', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hotel">Hotel</SelectItem>
-                  <SelectItem value="resort">Resort</SelectItem>
-                  <SelectItem value="lodge">Lodge</SelectItem>
-                  <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="villa">Villa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea value={property.description || ''} onChange={e => updateField('description', e.target.value)} />
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Edit Property
+            </h1>
+          </div>
+        </div>
+
+        <form onSubmit={onSave} className="space-y-8">
+          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6 flex items-center">
+              <Building className="w-5 h-5 mr-2 text-blue-600" />
+              Basic Information
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="name" className="text-slate-700 font-medium">Property Name *</Label>
+                <Input
+                  id="name"
+                  value={property.name}
+                  onChange={e => updateField('name', e.target.value)}
+                  className="bg-white border-slate-200 text-slate-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="type" className="text-slate-700 font-medium">Property Type *</Label>
+                <Select value={property.type} onValueChange={v => updateField('type', v)}>
+                  <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-slate-200">
+                    <SelectItem value="hotel" className="text-slate-900 hover:bg-slate-100">Hotel</SelectItem>
+                    <SelectItem value="resort" className="text-slate-900 hover:bg-slate-100">Resort</SelectItem>
+                    <SelectItem value="lodge" className="text-slate-900 hover:bg-slate-100">Lodge</SelectItem>
+                    <SelectItem value="apartment" className="text-slate-900 hover:bg-slate-100">Apartment</SelectItem>
+                    <SelectItem value="villa" className="text-slate-900 hover:bg-slate-100">Villa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label htmlFor="description" className="text-slate-700 font-medium">Description</Label>
+                <Textarea
+                  id="description"
+                  value={property.description || ''}
+                  onChange={e => updateField('description', e.target.value)}
+                  className="bg-white border-slate-200 text-slate-900 min-h-24"
+                />
+              </div>
             </div>
           </Card>
 
-          <Card className="p-4 grid md:grid-cols-2 gap-4">
-            <div>
-              <Label>Address</Label>
-              <Input value={property.address} onChange={e => updateField('address', e.target.value)} />
-            </div>
-            <div>
-              <Label>City</Label>
-              <Input value={property.city} onChange={e => updateField('city', e.target.value)} />
-            </div>
-            <div>
-              <Label>Country</Label>
-              <Input value={property.country} onChange={e => updateField('country', e.target.value)} />
-            </div>
-            <div>
-              <Label>ZIP</Label>
-              <Input value={property.zipCode || ''} onChange={e => updateField('zipCode', e.target.value)} />
+          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6 flex items-center">
+              <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+              Location Information
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <Label htmlFor="address" className="text-slate-700 font-medium">Street Address *</Label>
+                <Input
+                  id="address"
+                  value={property.address}
+                  onChange={e => updateField('address', e.target.value)}
+                  className="bg-white border-slate-200 text-slate-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="city" className="text-slate-700 font-medium">City *</Label>
+                <Input
+                  id="city"
+                  value={property.city}
+                  onChange={e => updateField('city', e.target.value)}
+                  className="bg-white border-slate-200 text-slate-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="country" className="text-slate-700 font-medium">Country *</Label>
+                <Input
+                  id="country"
+                  value={property.country}
+                  onChange={e => updateField('country', e.target.value)}
+                  className="bg-white border-slate-200 text-slate-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="zipCode" className="text-slate-700 font-medium">ZIP Code</Label>
+                <Input
+                  id="zipCode"
+                  value={property.zipCode || ''}
+                  onChange={e => updateField('zipCode', e.target.value)}
+                  className="bg-white border-slate-200 text-slate-900"
+                />
+              </div>
             </div>
           </Card>
 
@@ -241,6 +346,10 @@ const EditProperty = () => {
             <div>
               <Label>Capacity</Label>
               <Input type="number" value={property.defaultRoom?.capacity || 1} onChange={e => updateField('defaultRoom', { ...property.defaultRoom, capacity: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label>Max Guests Allowed</Label>
+              <Input type="number" value={property.defaultRoom?.maxGuests || 2} onChange={e => updateField('defaultRoom', { ...property.defaultRoom, maxGuests: Number(e.target.value) })} />
             </div>
             <div>
               <Label>Bed Type</Label>

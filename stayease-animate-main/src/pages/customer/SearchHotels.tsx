@@ -417,7 +417,12 @@ const SearchHotels = () => {
                               {/* Default Room summary (room card preview) */}
                               <div className="mb-4">
                                 {hotel.defaultRoom ? (
-                                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
+                                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 relative">
+                                    {hotel.defaultRoom.isVIP && (
+                                      <Badge className="absolute top-2 right-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-semibold">
+                                        VIP
+                                      </Badge>
+                                    )}
                                     <div className="flex items-center justify-between mb-2">
                                       <div className="font-medium text-slate-900 text-sm">
                                         {hotel.defaultRoom.name || hotel.defaultRoom.roomType || 'Room'}

@@ -111,7 +111,12 @@ const PropertyDetails = () => {
               </Card>
 
               {data.defaultRoom && (
-                <Card className="p-6">
+                <Card className="p-6 relative">
+                  {data.defaultRoom.isVIP && (
+                    <Badge className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold">
+                      VIP Room
+                    </Badge>
+                  )}
                   <h2 className="text-xl font-semibold mb-2">Default Room</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm text-slate-700">
                     {data.defaultRoom.name && <div><span className="text-slate-500">Name: </span>{data.defaultRoom.name}</div>}

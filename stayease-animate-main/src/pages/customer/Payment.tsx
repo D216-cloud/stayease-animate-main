@@ -52,7 +52,19 @@ const Payment = () => {
     return () => { ignore = true; };
   }, [propertyId]);
 
-  const total = (data?.price ?? 0) + 25; // taxes & fees flat for demo
+  const calculateDays = () => {
+    if (!form.checkIn || !form.checkOut) return 1;
+    const checkIn = new Date(form.checkIn);
+    const checkOut = new Date(form.checkOut);
+    const diffTime = checkOut.getTime() - checkIn.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 1;
+  };
+
+  const nights = calculateDays();
+  const roomTotal = (data?.price ?? 0) * nights;
+  const taxes = 25 * nights; // taxes per night
+  const total = roomTotal + taxes;
 
   const handlePay = async () => {
     if (!data || !propertyId) return;
@@ -141,16 +153,30 @@ const Payment = () => {
             <div className="space-y-6">
               <Card className="p-6">
                 <div className="text-2xl font-bold">${data.price}<span className="text-sm text-slate-500 font-normal">/night</span></div>
+                <div className="text-sm text-slate-600">Stay: {nights} night{nights !== 1 ? 's' : ''}</div>
                 <Separator className="my-4" />
                 <div className="space-y-2 text-sm text-slate-700">
-                  <div className="flex justify-between"><span>Room rate (1 night)</span><span>${data.price}</span></div>
-                  <div className="flex justify-between"><span>Taxes & fees</span><span>$25</span></div>
+                  <div className="flex justify-between"><span>Room rate ({nights} night{nights !== 1 ? 's' : ''})</span><span>${roomTotal}</span></div>
+                  <div className="flex justify-between"><span>Taxes & fees</span><span>${taxes}</span></div>
                   <Separator />
                   <div className="flex justify-between font-semibold"><span>Total</span><span>${total}</span></div>
                 </div>
                 <Button onClick={handlePay} disabled={processing || success} className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                   {processing ? 'Processing…' : success ? (<span className="inline-flex items-center"><Check className="w-4 h-4 mr-2" /> Paid</span>) : 'Pay Now'}
                 </Button>
+              </Card>
+
+              <Card className="p-6">
+                <div className="text-sm text-slate-600">
+                  <div className="font-semibold text-slate-900 mb-2">Company Information</div>
+                  <div className="space-y-1">
+                    <div>StayEase Inc.</div>
+                    <div>123 Travel Street, Suite 456</div>
+                    <div>New York, NY 10001</div>
+                    <div>support@stayease.com</div>
+                    <div>+1 (555) 123-4567</div>
+                  </div>
+                </div>
               </Card>
             </div>
           </div>

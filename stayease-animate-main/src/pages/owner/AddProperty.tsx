@@ -46,6 +46,7 @@ const AddProperty = () => {
       name: '',
       roomType: '',
       capacity: 1,
+      maxGuests: 2,
       bedType: '',
       size: 0,
       smokingAllowed: false,
@@ -152,7 +153,7 @@ const AddProperty = () => {
         email: formData.email,
         website: formData.website,
         rooms: Number(formData.rooms),
-        price: Number(formData.price),
+        price: Number(formData.price) + (formData.defaultRoom.isVIP ? 500 : 0),
         amenities: formData.amenities,
   images: imagesData,
   defaultRoomImages: defaultRoomImagesData,
@@ -402,6 +403,11 @@ const AddProperty = () => {
                   className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
                   required
                 />
+                {formData.defaultRoom.isVIP && formData.price && (
+                  <p className="text-sm text-purple-600 mt-1">
+                    VIP Surcharge: +$500 | Total: ${Number(formData.price) + 500}/night
+                  </p>
+                )}
               </div>
             </div>
           </Card>
@@ -448,6 +454,12 @@ const AddProperty = () => {
                   className="bg-white border-slate-200" />
               </div>
               <div>
+                <Label htmlFor="dr-maxguests" className="text-slate-700 font-medium">Max Guests Allowed</Label>
+                <Input id="dr-maxguests" type="number" min={1} value={formData.defaultRoom.maxGuests}
+                  onChange={(e) => handleDefaultRoomChange('maxGuests', Number(e.target.value))}
+                  className="bg-white border-slate-200" />
+              </div>
+              <div>
                 <Label htmlFor="dr-bed" className="text-slate-700 font-medium">Bed Type</Label>
                 <Input id="dr-bed" value={formData.defaultRoom.bedType}
                   onChange={(e) => handleDefaultRoomChange('bedType', e.target.value)}
@@ -471,26 +483,30 @@ const AddProperty = () => {
               </div>
 
               {/* VIP Toggle */}
-              <div className="flex items-center space-x-2 mt-8 md:col-span-3">
+              <div className="flex items-center space-x-2 mt-8 md:col-span-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
                 <Checkbox id="dr-vip" checked={formData.defaultRoom.isVIP}
                   onCheckedChange={(c) => handleDefaultRoomChange('isVIP', !!c)} />
-                <Label htmlFor="dr-vip" className="text-slate-700 font-medium">Mark as VIP Room</Label>
+                <div>
+                  <Label htmlFor="dr-vip" className="text-slate-700 font-medium">Mark as VIP Room (+$500 surcharge)</Label>
+                  <p className="text-sm text-slate-600">VIP rooms include premium services and are compulsory for selected features.</p>
+                </div>
               </div>
             </div>
 
             {/* VIP Extra Features */}
             {formData.defaultRoom.isVIP && (
-              <div className="mt-6">
-                <Label className="text-slate-700 font-medium">VIP Extra Features</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+              <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                <Label className="text-slate-700 font-medium text-lg mb-3 block">VIP Extra Features (Compulsory)</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {['Private Lounge Access','Complimentary Champagne','Late Checkout','Concierge Service','Premium Toiletries','Airport Pickup'].map((feat) => (
-                    <div key={feat} className="flex items-center space-x-2">
+                    <div key={feat} className="flex items-center space-x-2 p-2 bg-white rounded border">
                       <Checkbox id={`vip-${feat}`} checked={(formData.defaultRoom.vipFeatures || []).includes(feat)}
                         onCheckedChange={(c) => handleVipFeatureToggle(feat, !!c)} />
-                      <Label htmlFor={`vip-${feat}`} className="text-slate-700 text-sm">{feat}</Label>
+                      <Label htmlFor={`vip-${feat}`} className="text-slate-700 text-sm font-medium">{feat}</Label>
                     </div>
                   ))}
                 </div>
+                <p className="text-sm text-slate-600 mt-3">All VIP features are included and cannot be unselected once chosen.</p>
               </div>
             )}
 

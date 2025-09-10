@@ -77,12 +77,19 @@ const CustomerRoom = () => {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const handlePayment = () => {
-    setTimeout(() => {
-      setPaymentSuccess(true);
-      toast({ title: "Booking Successful!", description: "You'll receive a confirmation email." });
-    }, 1200);
+  const calculateDays = () => {
+    if (!bookingData.checkIn || !bookingData.checkOut) return 1;
+    const checkIn = new Date(bookingData.checkIn);
+    const checkOut = new Date(bookingData.checkOut);
+    const diffTime = checkOut.getTime() - checkIn.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 1;
   };
+
+  const nights = calculateDays();
+  const roomTotal = (data?.price ?? 0) * nights;
+  const taxes = 25 * nights;
+  const total = roomTotal + taxes;
 
   return (
     <DashboardLayout userRole="customer">
@@ -196,6 +203,9 @@ const CustomerRoom = () => {
             <div className="space-y-6">
               <Card className="p-6">
                 <div className="text-3xl font-bold">${data.price}<span className="text-sm text-slate-500 font-normal">/night</span></div>
+                {bookingData.checkIn && bookingData.checkOut && (
+                  <div className="text-sm text-slate-600">Stay: {nights} night{nights !== 1 ? 's' : ''}</div>
+                )}
                 <Separator className="my-4" />
 
                 <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
@@ -273,10 +283,10 @@ const CustomerRoom = () => {
                 </Dialog>
 
                 <div className="space-y-2 text-sm text-slate-600">
-                  <div className="flex justify-between"><span>Room rate (1 night)</span><span>${data.price}</span></div>
-                  <div className="flex justify-between"><span>Taxes & fees</span><span>$25</span></div>
+                  <div className="flex justify-between"><span>Room rate ({nights} night{nights !== 1 ? 's' : ''})</span><span>${roomTotal}</span></div>
+                  <div className="flex justify-between"><span>Taxes & fees</span><span>${taxes}</span></div>
                   <Separator />
-                  <div className="flex justify-between font-semibold"><span>Total</span><span>${data.price + 25}</span></div>
+                  <div className="flex justify-between font-semibold"><span>Total</span><span>${total}</span></div>
                 </div>
               </Card>
 

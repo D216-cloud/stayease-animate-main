@@ -31,6 +31,7 @@ import AddProperty from "./pages/owner/AddProperty";
 import RoomDetails from "./pages/owner/RoomDetails";
 import PropertyDetails from "./pages/owner/PropertyDetails";
 import EditProperty from "./pages/owner/EditProperty";
+import Ratings from "./pages/owner/Ratings";
 
 // General Pages
 import About from "./pages/About";
@@ -163,6 +164,11 @@ const App = () => (
             <Route path="/dashboard/hotel-owner/analytics" element={
               <ProtectedRoute requiredRole="hotel_owner">
                 <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/hotel-owner/ratings" element={
+              <ProtectedRoute requiredRole="hotel_owner">
+                <Ratings />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/hotel-owner/guests" element={

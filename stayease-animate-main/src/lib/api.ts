@@ -57,6 +57,7 @@ export interface Property {
     name?: string;
     roomType?: string;
     capacity?: number;
+    maxGuests?: number;
     bedType?: string;
     size?: number;
     smokingAllowed?: boolean;
@@ -193,7 +194,13 @@ export interface Review {
   reviewedAt: string;
   propertyName: string;
   customerName: string;
+  customerEmail: string;
   customerReviewCount: number;
+  isVerified: boolean;
+  helpful: number;
+  reported: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const BookingsAPI = {
@@ -246,8 +253,20 @@ export const BookingsAPI = {
     });
     return res.json();
   },
+  async allRatingsSummary(): Promise<ApiResponse<{ averageRating: number; totalReviews: number; counts?: Record<number, number> }>> {
+    const res = await fetch(`${API_BASE}/bookings/all-ratings`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
   async getOwnerReviews(): Promise<ApiResponse<Review[]>> {
     const res = await fetch(`${API_BASE}/bookings/owner/reviews`, {
+      headers: { ...getAuthHeaders() },
+    });
+    return res.json();
+  },
+  async getAllReviews(): Promise<ApiResponse<Review[]>> {
+    const res = await fetch(`${API_BASE}/bookings/all-reviews`, {
       headers: { ...getAuthHeaders() },
     });
     return res.json();
