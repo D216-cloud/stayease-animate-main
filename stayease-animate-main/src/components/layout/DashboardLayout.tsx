@@ -26,12 +26,12 @@ export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="min-h-screen flex w-full bg-transparent">
-        {/* Luxury Floating Background Elements */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-          <div className="absolute -top-40 -right-40 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-amber-400/20 to-rose-500/20 blur-3xl animate-pulse" />
-          <div className="absolute top-1/2 -left-40 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-sky-400/20 to-indigo-500/20 blur-3xl animate-pulse" style={{animationDelay: '1.5s'}} />
-          <div className="absolute bottom-10 right-1/4 w-[22rem] h-[22rem] rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-500/20 blur-3xl animate-pulse" style={{animationDelay: '3s'}} />
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        {/* Floating Background Elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-2000" />
         </div>
 
         <AppSidebar userRole={userRole} />
@@ -41,7 +41,10 @@ export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
           <header className="h-14 border-b border-border/50 bg-white/80 backdrop-blur-md flex items-center px-4 md:px-6 shadow-sm">
             <SidebarTrigger className="mr-4 hover:bg-slate-100 rounded-lg p-2 transition-colors" />
             <div className="flex-1" />
-            <div className="md:hidden" />
+            {/* Mobile menu button - can be expanded later */}
+            <div className="md:hidden">
+              {/* Mobile-specific header content */}
+            </div>
           </header>
 
           {/* Main Content */}

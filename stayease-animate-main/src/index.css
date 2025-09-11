@@ -2,37 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Luxury UI global enhancements */
-@layer base {
-  :root {
-    --lux-bg-start: 255 247 237; /* amber-50 */
-    --lux-bg-mid: 254 242 242; /* rose-50 */
-    --lux-bg-end: 239 246 255; /* sky-50 */
-  }
-
-  html, body, #root {
-    height: 100%;
-  }
-
-  body {
-    font-feature-settings: "liga" 1, "kern" 1;
-    background: radial-gradient(1200px 600px at 10% -10%, rgba(251, 191, 36, 0.12), transparent),
-                radial-gradient(1000px 500px at 110% 10%, rgba(244, 63, 94, 0.10), transparent),
-                linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 1));
-    background-attachment: fixed;
-  }
-}
-
-@layer components {
-  .lux-card {
-    @apply bg-white/90 backdrop-blur-md border border-white/60 shadow-xl hover:shadow-2xl transition-all;
-  }
-
-  .lux-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-600 via-rose-600 to-sky-600;
-  }
-}
-
 /* StayEase Enhanced Design System */
 
 @layer base {

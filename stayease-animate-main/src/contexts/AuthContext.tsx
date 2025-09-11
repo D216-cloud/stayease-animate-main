@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { API_BASE } from '@/lib/api';
 
 interface User {
   _id: string;
@@ -32,7 +33,7 @@ interface SignupData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = 'http://localhost:5000/api/auth';
+const API_BASE_URL = `${API_BASE}/auth`;
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
