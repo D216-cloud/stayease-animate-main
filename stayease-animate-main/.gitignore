@@ -35,8 +35,7 @@ out/
 .stylelintcache
 
 # Environment files
-.env
-.env.*
+
 !.env.example
 .envrc
 
